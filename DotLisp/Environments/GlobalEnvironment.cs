@@ -2,14 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotLisp.Exceptions;
-using DotLisp.Parsing;
-using static DotLisp.Parsing.Parser;
+using DotLisp.Types;
 
-namespace DotLisp.Types
+namespace DotLisp.Environments
 {
-    public class Evaluator
+    public class GlobalEnvironment : Environment
     {
-        public readonly Dictionary<string, Expression> Environment = new Dictionary<string, Expression>()
+        public GlobalEnvironment() :
+            base(_initData.Keys, _initData.Values, null)
+        {
+        }
+
+        private static readonly Dictionary<string, Expression> _initData = new Dictionary<string, Expression>()
         {
             ["begin"] = new Func()
             {
@@ -149,109 +153,6 @@ namespace DotLisp.Types
                     return Bool.False();
                 }
             };
-        }
-
-        public Evaluator()
-        {
-            // TODO: Implement dotnet types and add InterOp.
-            // var math = Type.GetType("System.Math");
-            // if (math == null)
-            // {
-            //     Console.WriteLine("Not found.");
-            //     return;
-            // }
-            //
-            // foreach (var type in math!.GetMembers())
-            // {
-            //     Console.Write(
-            //         $"{type.Name}, :{type.MemberType} ");
-            //
-            //     if (type is MethodInfo methodInfo)
-            //     {
-            //         Console.WriteLine($"params: {methodInfo.GetParameters().Length}");
-            //     }
-            //
-            //     if (type is FieldInfo fieldInfo)
-            //     {
-            //         if (fieldInfo.IsStatic)
-            //         {
-            //             Console.WriteLine(fieldInfo.GetRawConstantValue());
-            //         }
-            //     }
-            // }
-        }
-
-        public Expression Eval(Expression x)
-        {
-            // Here the special forms (if, define, ...)
-            // are implemented.
-            switch (x)
-            {
-                case Symbol s:
-                    if (Environment.TryGetValue(s.Name, out var val))
-                    {
-                        return val;
-                    }
-
-                    throw new EvaluatorException($"Symbol {s.Name} not found.");
-                case Number n:
-                    return n;
-                case List l when l.Expressions.Count == 0:
-                    throw new EvaluatorException("List cannot be empty");
-                case List l when l.Expressions[0] is Symbol s
-                                 && s.Name == "if":
-                    
-                    if (l.Expressions.Count != 4)
-                    {
-                        throw new EvaluatorException("'if' requires 2 parameters!");
-                    }
-                    
-                    var test = l.Expressions[1];
-                    var consequence = l.Expressions[2];
-                    var alternative = l.Expressions[3];
-
-                    if (!(Eval(test) is Bool b))
-                    {
-                        throw new EvaluatorException("'if' requires a bool!");
-                    }
-
-                    var toEval = b.Value ? consequence : alternative;
-
-                    return Eval(toEval);
-                case List l when l.Expressions[0] is Symbol s
-                                 && s.Name == "define":
-                    var name = (l.Expressions[1] as Symbol).Name;
-                    // TODO: Allow overwriting of existing definitions
-                    Environment.Add(name, Eval(l.Expressions[2]));
-                    break;
-                case List l: // function call
-                {
-                    var exps = l.Expressions;
-
-                    Func functionToCall = null;
-
-                    if (!(exps[0] is Symbol sym))
-                    {
-                        throw new EvaluatorException("Function call expected!");
-                    }
-
-
-                    if (Environment.TryGetValue(sym.Name, out var func))
-                    {
-                        functionToCall = func as Func;
-                    }
-
-                    var args = new List() {Expressions = new List<Expression>()};
-                    foreach (var exp in exps.Skip(1).ToList())
-                    {
-                        args.Expressions.Add(Eval(exp));
-                    }
-
-                    return functionToCall?.Action.Invoke(args);
-                }
-            }
-
-            return x;
         }
     }
 }
