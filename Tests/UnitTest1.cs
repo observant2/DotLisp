@@ -8,8 +8,6 @@ namespace Tests
 {
     public class UnitTest1
     {
-        private readonly Evaluator _evaluator = new Evaluator();
-
         [Fact]
         public void Math()
         {
@@ -55,7 +53,7 @@ namespace Tests
 
         private Expression Eval(string program)
         {
-            return _evaluator.Eval(Parser.Parse(program));
+            return Evaluator.Eval(Parser.Parse(program));
         }
     }
 }

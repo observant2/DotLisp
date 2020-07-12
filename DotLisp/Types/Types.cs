@@ -1,5 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using DotLisp.Environments;
+using DotLisp.Exceptions;
+using DotLisp.Parsing;
+using Environment = DotLisp.Environments.Environment;
 
 namespace DotLisp.Types
 {
@@ -66,6 +71,50 @@ namespace DotLisp.Types
             {
                 Value = false
             };
+        }
+    }
+
+    // TODO: Merge with Func?
+    public class Procedure : Expression
+    {
+        private readonly List<string> _parameters;
+
+        private readonly Expression _body;
+
+        private readonly Environment _env;
+
+        public Procedure(Expression parameters, Expression body,
+            Environment env)
+        {
+            if (!(parameters is List l))
+            {
+                throw new EvaluatorException("Parameter list expected!");
+            }
+
+            Console.WriteLine(l.PrettyPrint());
+
+            var names = l.Expressions.Cast<Symbol>().Select(s => s.Name)
+                .ToList();
+
+            _parameters = names;
+            _body = body;
+            _env = env;
+        }
+
+        public Expression Call(Expression args)
+        {
+            List<Expression> exps;
+            if (!(args is List l))
+            {
+                exps = new List<Expression>() {args};
+            }
+            else
+            {
+                exps = l.Expressions;
+            }
+
+            return Evaluator.Eval(_body,
+                new Environment(_parameters, exps, _env));
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using DotLisp.Environments;
 using DotLisp.Exceptions;
-using DotLisp.Types;
 using static DotLisp.Parsing.Parser;
 
 namespace DotLisp
@@ -10,8 +9,6 @@ namespace DotLisp
     {
         static void Main()
         {
-            var evaluator = new Evaluator();
-
             while (true)
             {
                 Console.Write("> ");
@@ -25,7 +22,7 @@ namespace DotLisp
                 try
                 {
                     var parsedProgram = Parse(input);
-                    Console.WriteLine(ToLisp(evaluator.Eval(parsedProgram)));
+                    Console.WriteLine(ToLisp(Evaluator.Eval(parsedProgram)));
                 }
                 catch (ParserException pe)
                 {

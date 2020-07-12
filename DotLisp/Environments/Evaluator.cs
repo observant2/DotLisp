@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using DotLisp.Exceptions;
 using DotLisp.Types;
 
@@ -7,7 +8,7 @@ namespace DotLisp.Environments
 {
     public class Evaluator
     {
-        private readonly Environment _globalEnvironment = new GlobalEnvironment();
+        private static Environment _globalEnvironment = new GlobalEnvironment();
 
         public Evaluator()
         {
@@ -39,7 +40,7 @@ namespace DotLisp.Environments
             // }
         }
 
-        public Expression Eval(Expression x, Environment env = null)
+        public static Expression Eval(Expression x, Environment env = null)
         {
             env ??= _globalEnvironment;
 
@@ -95,7 +96,7 @@ namespace DotLisp.Environments
 
                     return Eval(toEval, env);
                 }
-                case "define":
+                case "def":
                 {
                     var name = (args[0] as Symbol).Name;
                     // TODO: Allow overwriting of existing definitions
@@ -108,6 +109,27 @@ namespace DotLisp.Environments
                     env.Data.Add(name, data);
                     return data;
                 }
+                case "set!":
+                {
+                    var (symbol, exp) = (args[0], args[1]);
+                    if (!(symbol is Symbol s))
+                    {
+                        throw new EvaluatorException("'set!' expects a symbol name as first parameter!");
+                    }
+
+                    // TODO: Evaluation happens first
+                    // then assignment. If assignment fails,
+                    // evaluation happened anyway. Is this
+                    // wanted behavior?
+                    var data = Eval(exp, env);
+                    env.Find(s.Name).Data[s.Name] = data;
+                    return data;
+                }
+                case "fn":
+                {
+                    var (parameters, body) = (args[0], args[1]);
+                    return new Procedure(parameters, body, env);
+                }
             }
 
             // all other special forms failed to match
@@ -115,15 +137,23 @@ namespace DotLisp.Environments
 
             var exps = l.Expressions;
 
-            var functionToCall = env.Find(op.Name).Data[op.Name] as Func;
+            var functionToCall = env.Find(op.Name).Data[op.Name];
 
-            var vals = new List() {Expressions = new List<Expression>()};
+            var arguments = new List() {Expressions = new List<Expression>()};
             foreach (var exp in exps.Skip(1).ToList())
             {
-                vals.Expressions.Add(Eval(exp, env));
+                arguments.Expressions.Add(Eval(exp, env));
             }
 
-            return functionToCall?.Action.Invoke(vals);
+            if (functionToCall is Func f)
+            {
+                return f.Action.Invoke(arguments);
+            }
+            else
+            {
+                return (functionToCall as Procedure).Call(arguments);
+            }
+
         }
     }
 }
