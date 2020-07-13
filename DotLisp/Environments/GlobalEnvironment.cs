@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotLisp.Exceptions;
+using DotLisp.Parsing;
 using DotLisp.Types;
 
 namespace DotLisp.Environments
@@ -13,38 +14,88 @@ namespace DotLisp.Environments
         {
         }
 
-        private static readonly Dictionary<string, Expression> _initData = new Dictionary<string, Expression>()
-        {
-            ["begin"] = new Func()
+        private static readonly Dictionary<string, Expression> _initData =
+            new Dictionary<string, Expression>()
             {
-                Action = (expr) =>
+                ["do"] = new Func()
                 {
-                    if (expr is List l)
+                    Action = (expr) =>
                     {
-                        return new List()
+                        if (expr is List l)
                         {
-                            Expressions = l.Expressions.Skip(1).ToList()
-                        };
+                            return new List()
+                            {
+                                Expressions = l.Expressions.Skip(1).ToList()
+                            };
+                        }
+
+                        throw new EvaluatorException(
+                            "'do' needs at least one parameter");
+                    }
+                },
+
+                ["+"] = Apply((acc, x) => acc + x),
+                ["-"] = Apply((acc, x) => acc - x),
+                ["*"] = Apply((acc, x) => acc * x),
+                ["/"] = Apply((acc, x) => acc / x),
+
+                [">"] = BoolApply((a, b) => a > b),
+                [">="] = BoolApply((a, b) => a >= b),
+                ["<"] = BoolApply((a, b) => a < b),
+                ["<="] = BoolApply((a, b) => a <= b),
+                ["=="] = Equals(),
+
+                ["PI"] = new Number() {Float = (float) Math.PI},
+                ["E"] = new Number() {Float = (float) Math.E},
+
+                ["first"] = First(),
+                ["rest"] = Rest(),
+            };
+
+        public static Expression First()
+        {
+            return new Func
+            {
+                Action = (list) =>
+                {
+                    var args = (list as List).Expressions[0];
+                    if (!(args is List l))
+                    {
+                        throw new EvaluatorException("'first' expects a list!");
                     }
 
-                    throw new EvaluatorException("'begin' needs at least one parameter");
+                    if (l.Expressions.Count == 0)
+                    {
+                        throw new EvaluatorException(
+                            "'first' called on empty list!");
+                    }
+
+                    return l.Expressions[0];
                 }
-            },
+            };
+        }
 
-            ["+"] = Apply((acc, x) => acc + x),
-            ["-"] = Apply((acc, x) => acc - x),
-            ["*"] = Apply((acc, x) => acc * x),
-            ["/"] = Apply((acc, x) => acc / x),
+        public static Expression Rest()
+        {
+            return new Func
+            {
+                Action = (list) =>
+                {
+                    var args = (list as List).Expressions[0];
+                    if (!(args is List l))
+                    {
+                        throw new EvaluatorException("'rest' expects a list!");
+                    }
 
-            [">"] = BoolApply((a, b) => a > b),
-            [">="] = BoolApply((a, b) => a >= b),
-            ["<"] = BoolApply((a, b) => a < b),
-            ["<="] = BoolApply((a, b) => a <= b),
-            ["=="] = Equals(),
+                    if (l.Expressions.Count == 0)
+                    {
+                        throw new EvaluatorException("'rest' called on empty list!");
+                    }
 
-            ["PI"] = new Number() {Float = (float) Math.PI},
-            ["E"] = new Number() {Float = (float) Math.E}
-        };
+                    return new List {Expressions = l.Expressions.Skip(1).ToList()};
+                }
+            };
+        }
 
         public static Expression Apply(Func<float, float, float> reducer)
         {
@@ -54,8 +105,6 @@ namespace DotLisp.Environments
                 {
                     switch (args)
                     {
-                        case Number n:
-                            return n;
                         case List l:
                         {
                             var sum = l.Expressions.Cast<Number>()
@@ -126,7 +175,7 @@ namespace DotLisp.Environments
                             return Bool.True();
                         case List l:
                         {
-                            // TODO: extend equality to objects?
+                            // TODO: extend equality to objects!
 
                             var numbers = l.Expressions.Cast<Number>().ToList();
 
@@ -142,7 +191,8 @@ namespace DotLisp.Environments
                                         return (b, false);
                                     }
 
-                                    var predicateStillTrue = a.GetValue() == b.GetValue();
+                                    var predicateStillTrue =
+                                        a.GetValue() == b.GetValue();
 
                                     return (b, predicateStillTrue);
                                 });

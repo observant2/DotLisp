@@ -75,6 +75,7 @@ namespace DotLisp.Environments
             switch (op.Name)
             {
                 case "quote":
+                    
                     return args[0];
                 case "if":
                 {
@@ -144,7 +145,7 @@ namespace DotLisp.Environments
             {
                 arguments.Expressions.Add(Eval(exp, env));
             }
-
+            
             if (functionToCall is Func f)
             {
                 return f.Action.Invoke(arguments);

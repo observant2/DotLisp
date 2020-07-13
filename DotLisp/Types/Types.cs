@@ -10,6 +10,7 @@ namespace DotLisp.Types
 {
     public abstract class Expression
     {
+        public new abstract string ToString();
     }
 
     public abstract class Atom : Expression
@@ -19,6 +20,11 @@ namespace DotLisp.Types
     public class Symbol : Atom
     {
         public string Name { get; set; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 
     public class Func : Expression
@@ -26,11 +32,23 @@ namespace DotLisp.Types
         public delegate Expression DoSomething(Expression args);
 
         public DoSomething Action { get; set; }
+
+        public override string ToString()
+        {
+            return $"builtin function '{Action.Method.Name}'";
+        }
     }
 
     public class List : Expression
     {
         public List<Expression> Expressions { get; set; }
+
+        public override string ToString()
+        {
+            return "(" +
+                   string.Join(" ", Expressions.Select(e => e.ToString()).ToList()) +
+                   ")";
+        }
     }
 
     public class Number : Atom
@@ -42,6 +60,11 @@ namespace DotLisp.Types
 
         public float GetValue() =>
             IsFloat() ? this.Float!.Value : this.Int!.Value;
+
+        public override string ToString()
+        {
+            return IsFloat() ? Float!.ToString() : Int!.ToString();
+        }
     }
 
     public class Bool : Atom
@@ -71,6 +94,11 @@ namespace DotLisp.Types
             {
                 Value = false
             };
+        }
+
+        public override string ToString()
+        {
+            return Value.ToString();
         }
     }
 
@@ -115,6 +143,11 @@ namespace DotLisp.Types
 
             return Evaluator.Eval(_body,
                 new Environment(_parameters, exps, _env));
+        }
+
+        public override string ToString()
+        {
+            return $"procedure with {_parameters.Count} parameters";
         }
     }
 }

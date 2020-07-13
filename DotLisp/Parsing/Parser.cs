@@ -41,7 +41,7 @@ namespace DotLisp.Parsing
                            + ")";
             }
 
-            return exp.PrettyPrint();
+            return exp.ToString();
         }
 
         public static List<string> Tokenize(string input)
