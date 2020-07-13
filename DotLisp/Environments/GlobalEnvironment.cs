@@ -10,11 +10,11 @@ namespace DotLisp.Environments
     public class GlobalEnvironment : Environment
     {
         public GlobalEnvironment() :
-            base(_initData.Keys, _initData.Values, null)
+            base(InitData.Keys, InitData.Values, null)
         {
         }
 
-        private static readonly Dictionary<string, Expression> _initData =
+        private static readonly Dictionary<string, Expression> InitData =
             new Dictionary<string, Expression>()
             {
                 ["do"] = new Func()
@@ -25,7 +25,7 @@ namespace DotLisp.Environments
                         {
                             return new List()
                             {
-                                Expressions = l.Expressions.Skip(1).ToList()
+                                Expressions = l.Expressions.Skip(1).ToLinkedList()
                             };
                         }
 
@@ -50,6 +50,7 @@ namespace DotLisp.Environments
 
                 ["first"] = First(),
                 ["rest"] = Rest(),
+                ["cons"] = Cons(),
             };
 
         public static Expression First()
@@ -58,7 +59,7 @@ namespace DotLisp.Environments
             {
                 Action = (list) =>
                 {
-                    var args = (list as List).Expressions[0];
+                    var args = (list as List).Expressions.First();
                     if (!(args is List l))
                     {
                         throw new EvaluatorException("'first' expects a list!");
@@ -70,7 +71,33 @@ namespace DotLisp.Environments
                             "'first' called on empty list!");
                     }
 
-                    return l.Expressions[0];
+                    return l.Expressions.First();
+                }
+            };
+        }
+
+        public static Expression Cons()
+        {
+            return new Func
+            {
+                Action = (list) =>
+                {
+                    if (!(list is List argList) || argList.Expressions.Count != 2)
+                    {
+                        throw new EvaluatorException(
+                            "'cons' expects at least 2 arguments!");
+                    }
+
+                    if (!(argList.Expressions.ElementAt(1) is List destinationList))
+                    {
+                        throw new EvaluatorException(
+                            "'cons' expects second argument to be a list");
+                    }
+
+                    destinationList.Expressions.AddFirst(
+                        argList.Expressions.First());
+
+                    return destinationList;
                 }
             };
         }
@@ -81,7 +108,7 @@ namespace DotLisp.Environments
             {
                 Action = (list) =>
                 {
-                    var args = (list as List).Expressions[0];
+                    var args = (list as List).Expressions.First();
                     if (!(args is List l))
                     {
                         throw new EvaluatorException("'rest' expects a list!");
@@ -92,7 +119,8 @@ namespace DotLisp.Environments
                         throw new EvaluatorException("'rest' called on empty list!");
                     }
 
-                    return new List {Expressions = l.Expressions.Skip(1).ToList()};
+                    return new List
+                        {Expressions = l.Expressions.Skip(1).ToLinkedList()};
                 }
             };
         }

@@ -1,48 +1,48 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using DotLisp.Exceptions;
 using DotLisp.Types;
 
 namespace DotLisp.Environments
 {
-    public class Evaluator
+    public static class Evaluator
     {
-        private static Environment _globalEnvironment = new GlobalEnvironment();
+        private static readonly Environment GlobalEnvironment =
+            new GlobalEnvironment();
 
-        public Evaluator()
-        {
-            // TODO: Implement dotnet types and add InterOp.
-            // var math = Type.GetType("System.Math");
-            // if (math == null)
-            // {
-            //     Console.WriteLine("Not found.");
-            //     return;
-            // }
-            //
-            // foreach (var type in math!.GetMembers())
-            // {
-            //     Console.Write(
-            //         $"{type.Name}, :{type.MemberType} ");
-            //
-            //     if (type is MethodInfo methodInfo)
-            //     {
-            //         Console.WriteLine($"params: {methodInfo.GetParameters().Length}");
-            //     }
-            //
-            //     if (type is FieldInfo fieldInfo)
-            //     {
-            //         if (fieldInfo.IsStatic)
-            //         {
-            //             Console.WriteLine(fieldInfo.GetRawConstantValue());
-            //         }
-            //     }
-            // }
-        }
+        // public Evaluator()
+        // {
+        //     TODO: Implement dotnet types and add InterOp?
+        //     var math = Type.GetType("System.Math");
+        //     if (math == null)
+        //     {
+        //         Console.WriteLine("Not found.");
+        //         return;
+        //     }
+        //     
+        //     foreach (var type in math!.GetMembers())
+        //     {
+        //         Console.Write(
+        //             $"{type.Name}, :{type.MemberType} ");
+        //     
+        //         if (type is MethodInfo methodInfo)
+        //         {
+        //             Console.WriteLine($"params: {methodInfo.GetParameters().Length}");
+        //         }
+        //     
+        //         if (type is FieldInfo fieldInfo)
+        //         {
+        //             if (fieldInfo.IsStatic)
+        //             {
+        //                 Console.WriteLine(fieldInfo.GetRawConstantValue());
+        //             }
+        //         }
+        //     }
+        // }
 
         public static Expression Eval(Expression x, Environment env = null)
         {
-            env ??= _globalEnvironment;
+            env ??= GlobalEnvironment;
 
             // The special forms (if, define, ...)
             // are implemented here
@@ -62,10 +62,10 @@ namespace DotLisp.Environments
 
             if (l.Expressions.Count == 0)
             {
-                throw new EvaluatorException("List cannot be empty");
+                throw new EvaluatorException("An empty list needs to be quoted!");
             }
 
-            if (!(l.Expressions[0] is Symbol op))
+            if (!(l.Expressions.First() is Symbol op))
             {
                 throw new EvaluatorException("Function or special form expected!");
             }
@@ -75,7 +75,6 @@ namespace DotLisp.Environments
             switch (op.Name)
             {
                 case "quote":
-                    
                     return args[0];
                 case "if":
                 {
@@ -103,7 +102,8 @@ namespace DotLisp.Environments
                     // TODO: Allow overwriting of existing definitions
                     if (env.Data.ContainsKey(name))
                     {
-                        throw new EvaluatorException($"Symbol {name} already defined!");
+                        throw new EvaluatorException(
+                            $"Symbol {name} already defined!");
                     }
 
                     var data = Eval(args[1], env);
@@ -115,7 +115,8 @@ namespace DotLisp.Environments
                     var (symbol, exp) = (args[0], args[1]);
                     if (!(symbol is Symbol s))
                     {
-                        throw new EvaluatorException("'set!' expects a symbol name as first parameter!");
+                        throw new EvaluatorException(
+                            "'set!' expects a symbol name as first parameter!");
                     }
 
                     // TODO: Evaluation happens first
@@ -140,21 +141,18 @@ namespace DotLisp.Environments
 
             var functionToCall = env.Find(op.Name).Data[op.Name];
 
-            var arguments = new List() {Expressions = new List<Expression>()};
+            var arguments = new List() {Expressions = new LinkedList<Expression>()};
             foreach (var exp in exps.Skip(1).ToList())
             {
-                arguments.Expressions.Add(Eval(exp, env));
+                arguments.Expressions.AddLast(Eval(exp, env));
             }
-            
+
             if (functionToCall is Func f)
             {
                 return f.Action.Invoke(arguments);
             }
-            else
-            {
-                return (functionToCall as Procedure).Call(arguments);
-            }
 
+            return (functionToCall as Procedure).Call(arguments);
         }
     }
 }

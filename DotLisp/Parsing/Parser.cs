@@ -10,6 +10,11 @@ namespace DotLisp.Parsing
 {
     public static class Parser
     {
+        public static LinkedList<T> ToLinkedList<T>(this IEnumerable<T> list)
+        {
+            return new LinkedList<T>(list);
+        }
+
         public static string PrettyPrint(this object o)
         {
             return JsonConvert.SerializeObject(o, Formatting.None,
@@ -20,7 +25,8 @@ namespace DotLisp.Parsing
                 });
         }
 
-        public static IEnumerable<TResult> Pairwise<T, TResult>(this IEnumerable<T> enumerable,
+        public static IEnumerable<TResult> Pairwise<T, TResult>(
+            this IEnumerable<T> enumerable,
             Func<T, T, TResult> selector)
         {
             var list = enumerable.ToList();
@@ -77,10 +83,11 @@ namespace DotLisp.Parsing
                     {
                         throw new ParserException("Missing ')'!");
                     }
-                    var l = new List<Expression>();
+
+                    var l = new LinkedList<Expression>();
                     while (tokens[0] != ")")
                     {
-                        l = l.Append(ReadFromTokens(tokens)).ToList();
+                        l = l.Append(ReadFromTokens(tokens)).ToLinkedList();
                     }
 
                     tokens.RemoveAt(0);

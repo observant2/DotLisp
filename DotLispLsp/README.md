@@ -1,0 +1,1 @@
+﻿This is currently just a copy-paste of the sample project at the [csharp-language-server-protocol](https://github.com/OmniSharp/csharp-language-server-protocol).

@@ -41,7 +41,7 @@ namespace DotLisp.Types
 
     public class List : Expression
     {
-        public List<Expression> Expressions { get; set; }
+        public LinkedList<Expression> Expressions { get; set; }
 
         public override string ToString()
         {
@@ -131,10 +131,11 @@ namespace DotLisp.Types
 
         public Expression Call(Expression args)
         {
-            List<Expression> exps;
+            LinkedList<Expression> exps;
             if (!(args is List l))
             {
-                exps = new List<Expression>() {args};
+                exps = new LinkedList<Expression>();
+                exps.AddFirst(args);
             }
             else
             {
