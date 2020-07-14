@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using DotLisp.Environments;
 using DotLisp.Exceptions;
 using DotLisp.Parsing;
@@ -36,6 +37,14 @@ namespace DotLisp.Types
         public override string ToString()
         {
             return $"builtin function '{Action.Method.Name}'";
+        }
+
+        public static Func From(Func<Expression, Expression> f)
+        {
+            return new Func()
+            {
+                Action = new DoSomething(f)
+            };
         }
     }
 
@@ -102,7 +111,10 @@ namespace DotLisp.Types
         }
     }
 
-    // TODO: Merge with Func?
+    /// A user defined procedure. This is different
+    /// from Func, which represents builtin functions
+    /// that directly map to C# code and act independently
+    /// of their current environment.
     public class Procedure : Expression
     {
         private readonly List<string> _parameters;
