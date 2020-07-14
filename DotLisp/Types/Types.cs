@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using DotLisp.Environments;
 using DotLisp.Exceptions;
 using DotLisp.Parsing;
@@ -21,6 +20,11 @@ namespace DotLisp.Types
     public class Symbol : Atom
     {
         public string Name { get; set; }
+
+        public Symbol(string name)
+        {
+            Name = name;
+        }
 
         public override string ToString()
         {
@@ -73,6 +77,16 @@ namespace DotLisp.Types
         public override string ToString()
         {
             return IsFloat() ? Float!.ToString() : Int!.ToString();
+        }
+    }
+
+    public class String : Atom
+    {
+        public string Value { get; set; }
+
+        public override string ToString()
+        {
+            return $"\"{Value}\"";
         }
     }
 

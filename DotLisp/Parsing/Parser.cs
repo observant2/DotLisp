@@ -1,43 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using DotLisp.Exceptions;
 using DotLisp.Types;
-using Newtonsoft.Json;
+using String = DotLisp.Types.String;
 
 namespace DotLisp.Parsing
 {
     public static class Parser
     {
-        public static LinkedList<T> ToLinkedList<T>(this IEnumerable<T> list)
-        {
-            return new LinkedList<T>(list);
-        }
-
-        public static string PrettyPrint(this object o)
-        {
-            return JsonConvert.SerializeObject(o, Formatting.None,
-                new JsonSerializerSettings()
-                {
-                    NullValueHandling = NullValueHandling.Ignore,
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                });
-        }
-
-        public static IEnumerable<TResult> Pairwise<T, TResult>(
-            this IEnumerable<T> enumerable,
-            Func<T, T, TResult> selector)
-        {
-            var list = enumerable.ToList();
-            var previous = list.First();
-            foreach (var item in list.Skip(1))
-            {
-                yield return selector(previous, item);
-                previous = item;
-            }
-        }
-
         public static string ToLisp(Expression exp)
         {
             if (exp is List l)
@@ -87,7 +61,7 @@ namespace DotLisp.Parsing
                     var l = new LinkedList<Expression>();
                     while (tokens[0] != ")")
                     {
-                        l = l.Append(ReadFromTokens(tokens)).ToLinkedList();
+                        l.AddLast(ReadFromTokens(tokens));
                     }
 
                     tokens.RemoveAt(0);
@@ -105,6 +79,15 @@ namespace DotLisp.Parsing
 
         public static Atom ParseAtom(string token)
         {
+            if (token[0] == '"')
+            {
+                return new String
+                {
+                    Value =
+                        token.Substring(1, token.Length - 2)
+                };
+            }
+
             if (token == "true" || token == "false")
             {
                 return new Bool()
@@ -132,10 +115,116 @@ namespace DotLisp.Parsing
                 };
             }
 
-            return new Symbol()
+            return new Symbol(token);
+        }
+    }
+
+    public class InPort
+    {
+        private Regex _tokenizer = new Regex(
+            @"\s*(,@|[('`,)]|""(?:[\\].|[^\\""])*""|;.*|[^\s('""`,;)]*)(.*)"
+        );
+
+        private Dictionary<string, string> _quotes = new Dictionary<string, string>()
+        {
+            ["'"] = "quote",
+            ["`"] = "quasiquote",
+            [","] = "unquote",
+            [",@"] = "unquotesplicing"
+        };
+
+        private StreamReader _inputStream;
+
+        private string _line = "";
+
+        public InPort(StreamReader inputStream)
+        {
+            _inputStream = inputStream;
+        }
+
+        // TODO: Change this to return strings
+        // Throw exception if eof is reached
+        public string NextToken()
+        {
+            while (true)
             {
-                Name = token
-            };
+                if (string.IsNullOrEmpty(_line))
+                {
+                    _line = _inputStream.ReadLine();
+                }
+
+                if (string.IsNullOrEmpty(_line) && _inputStream.EndOfStream)
+                {
+                    return null;
+                }
+
+                var match = _tokenizer.Match(_line);
+                var token = match.Groups[1].Value.Trim();
+                _line = _line.ReplaceFirst(token, "").Trim();
+                return token;
+            }
+        }
+
+        public static string ReadChar(InPort inPort)
+        {
+            if (inPort._line != "")
+            {
+                var ch = "" + inPort._line[0];
+                inPort._line = inPort._line.Substring(1);
+                return ch;
+            }
+            else
+            {
+                return "" + Convert.ToChar(inPort._inputStream.Read());
+            }
+        }
+
+        private Expression ReadAhead(string token)
+        {
+            switch (token)
+            {
+                case "(":
+                    var l = new List()
+                    {
+                        Expressions = new LinkedList<Expression>()
+                    };
+                    while (true)
+                    {
+                        token = NextToken();
+                        if (token == ")")
+                        {
+                            return l;
+                        }
+
+                        l.Expressions.AddLast(ReadAhead(token));
+                    }
+
+                case ")":
+                    throw new ParserException("Unexpected ')'!");
+            }
+
+            if (_quotes.ContainsKey(token))
+            {
+                // convert to real expression
+                var keyword = _quotes[token];
+                var exps = new LinkedList<Expression>();
+
+                exps.AddLast(new Symbol(keyword));
+                exps.AddLast(Read());
+
+                return new List
+                {
+                    Expressions = exps
+                };
+            }
+
+            return Parser.ParseAtom(token);
+        }
+
+        public Expression Read()
+        {
+            var token1 = NextToken();
+            return token1 == null ? new Symbol("eof") : ReadAhead(token1);
         }
     }
 }
