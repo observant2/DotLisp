@@ -7,20 +7,20 @@ namespace DotLisp.Environments.Core
 {
     public static class Math
     {
-        public static Expression Apply(Func<float, float, float> reducer)
+        public static DotExpression Apply(Func<float, float, float> reducer)
         {
-            return Func.From(
+            return DotFunc.From(
                 args =>
                 {
                     switch (args)
                     {
-                        case List l:
+                        case DotList l:
                             {
-                                var sum = l.Expressions.Cast<Number>()
+                                var sum = l.Expressions.Cast<DotNumber>()
                                     .Select(s => s.GetValue())
                                     .Aggregate(reducer);
 
-                                return new Number()
+                                return new DotNumber()
                                 {
                                     Float = sum
                                 };
@@ -31,18 +31,18 @@ namespace DotLisp.Environments.Core
                 });
         }
 
-        public static Expression Compare(Func<float, float, bool> predicate)
+        public static DotExpression Compare(Func<float, float, bool> predicate)
         {
-            return Func.From(
+            return DotFunc.From(
                 args =>
                 {
                     switch (args)
                     {
-                        case Bool b:
+                        case DotBool b:
                             return b;
-                        case List l:
+                        case DotList l:
                             {
-                                var numbers = l.Expressions.Cast<Number>()
+                                var numbers = l.Expressions.Cast<DotNumber>()
                                     .Select(s => s.GetValue()).ToList();
 
                                 var (_, result) = numbers.Skip(1).Aggregate(
@@ -61,7 +61,7 @@ namespace DotLisp.Environments.Core
                                     });
 
 
-                                return new Bool(result);
+                                return new DotBool(result);
                             }
                         default:
                             throw new Exception("Illegal arguments for BoolApply.");
@@ -69,20 +69,20 @@ namespace DotLisp.Environments.Core
                 });
         }
 
-        public static Func Equals()
+        public static DotFunc Equals()
         {
-            return Func.From(
+            return DotFunc.From(
                 args =>
                 {
                     switch (args)
                     {
-                        case Symbol _:
-                            return Bool.True();
-                        case List l:
+                        case DotSymbol _:
+                            return DotBool.True();
+                        case DotList l:
                             {
                                 // TODO: extend equality to objects!
 
-                                var numbers = l.Expressions.Cast<Number>().ToList();
+                                var numbers = l.Expressions.Cast<DotNumber>().ToList();
 
                                 var first = numbers[0];
 
@@ -101,11 +101,11 @@ namespace DotLisp.Environments.Core
 
                                         return (b, predicateStillTrue);
                                     });
-                                return new Bool(result);
+                                return new DotBool(result);
                             }
                     }
 
-                    return Bool.False();
+                    return DotBool.False();
                 });
         }
     }

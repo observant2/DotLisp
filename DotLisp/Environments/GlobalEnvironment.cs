@@ -14,25 +14,9 @@ namespace DotLisp.Environments
         {
         }
 
-        private static readonly Dictionary<string, Expression> InitData =
-            new Dictionary<string, Expression>()
+        private static readonly Dictionary<string, DotExpression> InitData =
+            new Dictionary<string, DotExpression>()
             {
-                ["do"] = Func.From(
-                    (expr) =>
-                    {
-                        if (expr is List l)
-                        {
-                            return new List()
-                            {
-                                Expressions = l.Expressions.Skip(1)
-                                    .ToLinkedList()
-                            };
-                        }
-
-                        throw new EvaluatorException(
-                            "'do' needs at least one parameter");
-                    }),
-
                 ["+"] = Math.Apply((acc, x) => acc + x),
                 ["-"] = Math.Apply((acc, x) => acc - x),
                 ["*"] = Math.Apply((acc, x) => acc * x),
@@ -44,8 +28,8 @@ namespace DotLisp.Environments
                 ["<="] = Math.Compare((a, b) => a <= b),
                 ["=="] = Math.Equals(),
 
-                ["PI"] = new Number() { Float = (float)System.Math.PI },
-                ["E"] = new Number() { Float = (float)System.Math.E },
+                ["PI"] = new DotNumber() { Float = (float)System.Math.PI },
+                ["E"] = new DotNumber() { Float = (float)System.Math.E },
 
                 ["first"] = Lists.First(),
                 ["rest"] = Lists.Rest(),

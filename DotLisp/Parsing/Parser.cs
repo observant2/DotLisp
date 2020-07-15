@@ -7,15 +7,14 @@ using System.Text;
 using System.Text.RegularExpressions;
 using DotLisp.Exceptions;
 using DotLisp.Types;
-using String = DotLisp.Types.String;
 
 namespace DotLisp.Parsing
 {
     public static class Parser
     {
-        public static string ToLisp(Expression exp)
+        public static string ToLisp(DotExpression exp)
         {
-            if (exp is List l)
+            if (exp is DotList l)
             {
                 return "(" + string.Join(" ",
                                l.Expressions.Select(ToLisp))
@@ -35,12 +34,12 @@ namespace DotLisp.Parsing
                 .ToList();
         }
 
-        public static Expression Parse(string program)
+        public static DotExpression Parse(string program)
         {
             return ReadFromTokens(Tokenize(program));
         }
 
-        public static Expression ReadFromTokens(List<string> tokens)
+        public static DotExpression ReadFromTokens(List<string> tokens)
         {
             if (tokens.Count == 0)
             {
@@ -59,14 +58,14 @@ namespace DotLisp.Parsing
                             throw new ParserException("Missing ')'!");
                         }
 
-                        var l = new LinkedList<Expression>();
+                        var l = new LinkedList<DotExpression>();
                         while (tokens[0] != ")")
                         {
                             l.AddLast(ReadFromTokens(tokens));
                         }
 
                         tokens.RemoveAt(0);
-                        return new List()
+                        return new DotList()
                         {
                             Expressions = l
                         };
@@ -78,11 +77,11 @@ namespace DotLisp.Parsing
             }
         }
 
-        public static Atom ParseAtom(string token)
+        public static DotAtom ParseAtom(string token)
         {
             if (token[0] == '"')
             {
-                return new String
+                return new DotString
                 {
                     Value =
                         token.Substring(1, token.Length - 2)
@@ -91,7 +90,7 @@ namespace DotLisp.Parsing
 
             if (token == "true" || token == "false")
             {
-                return new Bool()
+                return new DotBool()
                 {
                     Value = bool.Parse(token)
                 };
@@ -99,7 +98,7 @@ namespace DotLisp.Parsing
 
             if (int.TryParse(token, out var integer))
             {
-                return new Number()
+                return new DotNumber()
                 {
                     Int = integer
                 };
@@ -110,13 +109,13 @@ namespace DotLisp.Parsing
                 CultureInfo.InvariantCulture,
                 out var floating))
             {
-                return new Number()
+                return new DotNumber()
                 {
                     Float = floating
                 };
             }
 
-            return new Symbol(token);
+            return new DotSymbol(token);
         }
     }
 
@@ -183,14 +182,14 @@ namespace DotLisp.Parsing
             }
         }
 
-        private Expression ReadAhead(string token)
+        private DotExpression ReadAhead(string token)
         {
             switch (token)
             {
                 case "(":
-                    var l = new List()
+                    var l = new DotList()
                     {
-                        Expressions = new LinkedList<Expression>()
+                        Expressions = new LinkedList<DotExpression>()
                     };
                     while (true)
                     {
@@ -211,12 +210,12 @@ namespace DotLisp.Parsing
             {
                 // convert to real expression
                 var keyword = _quotes[token];
-                var exps = new LinkedList<Expression>();
+                var exps = new LinkedList<DotExpression>();
 
-                exps.AddLast(new Symbol(keyword));
+                exps.AddLast(new DotSymbol(keyword));
                 exps.AddLast(Read());
 
-                return new List
+                return new DotList
                 {
                     Expressions = exps
                 };
@@ -225,13 +224,13 @@ namespace DotLisp.Parsing
             return Parser.ParseAtom(token);
         }
 
-        public Expression Read()
+        public DotExpression Read()
         {
             var token1 = NextToken();
-            return token1 == null ? new Symbol("eof") : ReadAhead(token1);
+            return token1 == null ? new DotSymbol("eof") : ReadAhead(token1);
         }
 
-        public Expression Read(string input)
+        public DotExpression Read(string input)
         {
             _inputStream =
                 new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input)));

@@ -1,19 +1,18 @@
 ﻿using System.Linq;
 using DotLisp.Exceptions;
-using DotLisp.Parsing;
 using DotLisp.Types;
 
 namespace DotLisp.Environments.Core
 {
     public static class Lists
     {
-        public static Expression First()
+        public static DotExpression First()
         {
-            return Func.From(
+            return DotFunc.From(
                 (list) =>
                 {
-                    var args = (list as List).Expressions.First();
-                    if (!(args is List l))
+                    var args = (list as DotList).Expressions.First();
+                    if (!(args is DotList l))
                     {
                         throw new EvaluatorException("'first' expects a list!");
                     }
@@ -28,18 +27,19 @@ namespace DotLisp.Environments.Core
                 });
         }
 
-        public static Expression Cons()
+        // TODO: Implement a real cons :)
+        public static DotExpression Cons()
         {
-            return Func.From(
+            return DotFunc.From(
                 (list) =>
                 {
-                    if (!(list is List argList) || argList.Expressions.Count != 2)
+                    if (!(list is DotList argList) || argList.Expressions.Count != 2)
                     {
                         throw new EvaluatorException(
                             "'cons' expects at least 2 arguments!");
                     }
 
-                    if (!(argList.Expressions.ElementAt(1) is List destinationList))
+                    if (!(argList.Expressions.ElementAt(1) is DotList destinationList))
                     {
                         throw new EvaluatorException(
                             "'cons' expects second argument to be a list");
@@ -52,13 +52,13 @@ namespace DotLisp.Environments.Core
                 });
         }
 
-        public static Expression Rest()
+        public static DotExpression Rest()
         {
-            return Func.From(
+            return DotFunc.From(
                 (list) =>
                 {
-                    var args = (list as List).Expressions.First();
-                    if (!(args is List l))
+                    var args = (list as DotList).Expressions.First();
+                    if (!(args is DotList l))
                     {
                         throw new EvaluatorException("'rest' expects a list!");
                     }
@@ -68,7 +68,7 @@ namespace DotLisp.Environments.Core
                         throw new EvaluatorException("'rest' called on empty list!");
                     }
 
-                    return new List
+                    return new DotList
                     { Expressions = l.Expressions.Skip(1).ToLinkedList() };
                 });
         }

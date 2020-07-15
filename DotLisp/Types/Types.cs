@@ -8,20 +8,20 @@ using Environment = DotLisp.Environments.Environment;
 
 namespace DotLisp.Types
 {
-    public abstract class Expression
+    public abstract class DotExpression
     {
         public new abstract string ToString();
     }
 
-    public abstract class Atom : Expression
+    public abstract class DotAtom : DotExpression
     {
     }
 
-    public class Symbol : Atom
+    public class DotSymbol : DotAtom
     {
         public string Name { get; set; }
 
-        public Symbol(string name)
+        public DotSymbol(string name)
         {
             Name = name;
         }
@@ -32,9 +32,9 @@ namespace DotLisp.Types
         }
     }
 
-    public class Func : Expression
+    public class DotFunc : DotExpression
     {
-        public delegate Expression DoSomething(Expression args);
+        public delegate DotExpression DoSomething(DotExpression args);
 
         public DoSomething Action { get; set; }
 
@@ -43,18 +43,18 @@ namespace DotLisp.Types
             return $"builtin function '{Action.Method.Name}'";
         }
 
-        public static Func From(Func<Expression, Expression> f)
+        public static DotFunc From(Func<DotExpression, DotExpression> f)
         {
-            return new Func()
+            return new DotFunc()
             {
                 Action = new DoSomething(f)
             };
         }
     }
 
-    public class List : Expression
+    public class DotList : DotExpression
     {
-        public LinkedList<Expression> Expressions { get; set; }
+        public LinkedList<DotExpression> Expressions { get; set; }
 
         public override string ToString()
         {
@@ -64,7 +64,7 @@ namespace DotLisp.Types
         }
     }
 
-    public class Number : Atom
+    public class DotNumber : DotAtom
     {
         public int? Int { get; set; }
         public float? Float { get; set; }
@@ -80,7 +80,7 @@ namespace DotLisp.Types
         }
     }
 
-    public class String : Atom
+    public class DotString : DotAtom
     {
         public string Value { get; set; }
 
@@ -90,30 +90,30 @@ namespace DotLisp.Types
         }
     }
 
-    public class Bool : Atom
+    public class DotBool : DotAtom
     {
         public bool Value { get; set; }
 
-        public Bool(bool value)
+        public DotBool(bool value)
         {
             Value = value;
         }
 
-        public Bool()
+        public DotBool()
         {
         }
 
-        public static Bool True()
+        public static DotBool True()
         {
-            return new Bool()
+            return new DotBool()
             {
                 Value = true
             };
         }
 
-        public static Bool False()
+        public static DotBool False()
         {
-            return new Bool()
+            return new DotBool()
             {
                 Value = false
             };
@@ -129,25 +129,25 @@ namespace DotLisp.Types
     /// from Func, which represents builtin functions
     /// that directly map to C# code and act independently
     /// of their current environment.
-    public class Procedure : Expression
+    public class DotProcedure : DotExpression
     {
         private readonly List<string> _parameters;
 
-        private readonly Expression _body;
+        private readonly DotExpression _body;
 
         private readonly Environment _env;
 
-        public Procedure(Expression parameters, Expression body,
+        public DotProcedure(DotExpression parameters, DotExpression body,
             Environment env)
         {
-            if (!(parameters is List l))
+            if (!(parameters is DotList l))
             {
                 throw new EvaluatorException("Parameter list expected!");
             }
 
             Console.WriteLine(l.PrettyPrint());
 
-            var names = l.Expressions.Cast<Symbol>().Select(s => s.Name)
+            var names = l.Expressions.Cast<DotSymbol>().Select(s => s.Name)
                 .ToList();
 
             _parameters = names;
@@ -155,12 +155,12 @@ namespace DotLisp.Types
             _env = env;
         }
 
-        public Expression Call(Expression args)
+        public DotExpression Call(DotExpression args)
         {
-            LinkedList<Expression> exps;
-            if (!(args is List l))
+            LinkedList<DotExpression> exps;
+            if (!(args is DotList l))
             {
-                exps = new LinkedList<Expression>();
+                exps = new LinkedList<DotExpression>();
                 exps.AddFirst(args);
             }
             else

@@ -9,14 +9,14 @@ namespace DotLisp.Environments
     public class Environment
     {
         /// All the symbols defined in this environment
-        public Dictionary<string, Expression> Data { get; set; }
+        public Dictionary<string, DotExpression> Data { get; set; }
 
         /// The environment containing this environment
         public Environment Outer { get; set; }
 
         public Environment(
             IEnumerable<string> parameters,
-            IEnumerable<Expression> expressions,
+            IEnumerable<DotExpression> expressions,
             Environment outer)
         {
             var data = parameters.Zip(expressions)

@@ -8,6 +8,7 @@ namespace Tests
 {
     public class UnitTest1
     {
+        // TODO: Clear environment after each test
         private readonly InPort _inPort = new InPort("");
 
         [Fact]
@@ -15,32 +16,32 @@ namespace Tests
         {
             var result = Eval("(+ 2 2)");
 
-            Assert.IsType<Number>(result);
-            if (result is Number n1)
+            Assert.IsType<DotNumber>(result);
+            if (result is DotNumber n1)
             {
                 Assert.Equal(2 + 2, n1.GetValue());
             }
 
             result = Eval("(- 3 2)");
 
-            Assert.IsType<Number>(result);
-            if (result is Number n2)
+            Assert.IsType<DotNumber>(result);
+            if (result is DotNumber n2)
             {
                 Assert.Equal(3 - 2, n2.GetValue());
             }
 
             result = Eval("(* 3 2)");
 
-            Assert.IsType<Number>(result);
-            if (result is Number n3)
+            Assert.IsType<DotNumber>(result);
+            if (result is DotNumber n3)
             {
                 Assert.Equal(3 * 2, n3.GetValue());
             }
 
             result = Eval("(/ 3 2)");
 
-            Assert.IsType<Number>(result);
-            if (result is Number n4)
+            Assert.IsType<DotNumber>(result);
+            if (result is DotNumber n4)
             {
                 Assert.Equal(3.0 / 2, n4.GetValue());
             }
@@ -51,6 +52,7 @@ namespace Tests
         {
             If();
             Cons();
+            Do();
         }
 
         private void If()
@@ -58,23 +60,33 @@ namespace Tests
             Assert.Throws<EvaluatorException>(() => { Eval("(if)"); });
 
             var result = Eval("(if true 2 1)");
-            Assert.IsType<Number>(result);
-            Assert.Equal(2, (result as Number).GetValue());
+            Assert.IsType<DotNumber>(result);
+            Assert.Equal(2, (result as DotNumber).GetValue());
 
             result = Eval("(if false 2 1)");
-            Assert.IsType<Number>(result);
-            Assert.Equal(1, (result as Number).GetValue());
+            Assert.IsType<DotNumber>(result);
+            Assert.Equal(1, (result as DotNumber).GetValue());
         }
 
         private void Cons()
         {
             Assert.Throws<EvaluatorException>(() => { Eval("(cons 1 2)"); });
 
-            Assert.Equal("(1 2 3)", Parser.ToLisp(Eval("(cons 1 '(2 3))")));
+            Assert.Equal("(1 2 3)", Parser.ToLisp(
+                Eval("(cons 1 '(2 3))")));
+        }
+
+        private void Do()
+        {
+            Assert.Equal("10", Parser.ToLisp(
+                Eval("(do (def y 3) (+ 5 5))")));
+            
+            Assert.Equal("3", Parser.ToLisp(
+                Eval("y")));
         }
 
 
-        private Expression Eval(string program)
+        private DotExpression Eval(string program)
         {
             return Evaluator.Eval(_inPort.Read(program));
         }
