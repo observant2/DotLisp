@@ -122,11 +122,10 @@ namespace DotLisp.Environments
                     case "def":
                     {
                         var name = (args[0] as DotSymbol).Name;
-                        // TODO: Allow overwriting of existing definitions
                         if (env.Data.ContainsKey(name))
                         {
                             throw new EvaluatorException(
-                                $"Symbol {name} already defined!");
+                                $"Symbol '{name}' already defined!");
                         }
 
                         var data = Eval(args[1], env);
@@ -144,6 +143,7 @@ namespace DotLisp.Environments
                         {
                             Eval(expression, env);
                         }
+
                         // return only value of last expression
                         x = args.Last();
                         continue;
@@ -155,7 +155,6 @@ namespace DotLisp.Environments
 
                 var exps = l.Expressions;
 
-                var functionToCall = env.Find(op.Name).Data[op.Name];
 
                 var arguments = new DotList()
                     {Expressions = new LinkedList<DotExpression>()};
@@ -164,12 +163,25 @@ namespace DotLisp.Environments
                     arguments.Expressions.AddLast(Eval(exp, env));
                 }
 
+                var functionToCall = env.Find(op.Name).Data[op.Name];
+
                 if (functionToCall is DotFunc f)
                 {
                     return f.Action.Invoke(arguments);
                 }
 
-                return (functionToCall as DotProcedure).Call(arguments);
+                if (functionToCall is DotProcedure proc)
+                {
+                    // Enable tail call optimization.
+                    // Instead of recursion, set the current environment and expressions
+                    // to the function's environment and body.
+                    env = new Environment(
+                        proc.Parameters, 
+                        arguments.Expressions,
+                        proc.Env);
+                    x = proc.Body;
+                    continue;
+                }
             }
         }
     }

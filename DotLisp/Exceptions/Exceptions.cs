@@ -13,7 +13,7 @@ namespace DotLisp.Exceptions
     public class SymbolNotFoundException : EvaluatorException
     {
         public SymbolNotFoundException(string symbol)
-            : base($"Symbol {symbol} not found!")
+            : base($"Symbol '{symbol}' not found!")
         {
         }
     }

@@ -52,24 +52,24 @@ namespace DotLisp.Parsing
             switch (token)
             {
                 case "(":
+                {
+                    if (tokens.Count == 0)
                     {
-                        if (tokens.Count == 0)
-                        {
-                            throw new ParserException("Missing ')'!");
-                        }
-
-                        var l = new LinkedList<DotExpression>();
-                        while (tokens[0] != ")")
-                        {
-                            l.AddLast(ReadFromTokens(tokens));
-                        }
-
-                        tokens.RemoveAt(0);
-                        return new DotList()
-                        {
-                            Expressions = l
-                        };
+                        throw new ParserException("Missing ')'!");
                     }
+
+                    var l = new LinkedList<DotExpression>();
+                    while (tokens[0] != ")")
+                    {
+                        l.AddLast(ReadFromTokens(tokens));
+                    }
+
+                    tokens.RemoveAt(0);
+                    return new DotList()
+                    {
+                        Expressions = l
+                    };
+                }
                 case ")":
                     throw new ParserException("Unexpected ')'!");
                 default:
@@ -121,7 +121,7 @@ namespace DotLisp.Parsing
 
     public class InPort
     {
-        private Regex _tokenizer = new Regex(
+        private readonly Regex _tokenizer = new Regex(
             @"\s*(,@|[('`,)]|""(?:[\\].|[^\\""])*""|;.*|[^\s('""`,;)]*)(.*)"
         );
 
@@ -164,7 +164,10 @@ namespace DotLisp.Parsing
                 var match = _tokenizer.Match(_line);
                 var token = match.Groups[1].Value.Trim();
                 _line = _line.ReplaceFirst(token, "").Trim();
-                return token;
+                if (token != "" && token != ";")
+                {
+                    return token;
+                }
             }
         }
 
@@ -234,6 +237,12 @@ namespace DotLisp.Parsing
         {
             _inputStream =
                 new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input)));
+            return Read();
+        }
+
+        public DotExpression Read(FileStream fileStream)
+        {
+            _inputStream = new StreamReader(fileStream);
             return Read();
         }
     }

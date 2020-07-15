@@ -1,8 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using DotLisp.Environments.Core;
-using DotLisp.Exceptions;
-using DotLisp.Parsing;
 using DotLisp.Types;
 
 namespace DotLisp.Environments

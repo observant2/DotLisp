@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DotLisp.Environments;
 using DotLisp.Exceptions;
-using DotLisp.Parsing;
 using Environment = DotLisp.Environments.Environment;
 
 namespace DotLisp.Types
@@ -131,11 +130,11 @@ namespace DotLisp.Types
     /// of their current environment.
     public class DotProcedure : DotExpression
     {
-        private readonly List<string> _parameters;
+        public readonly List<string> Parameters;
 
-        private readonly DotExpression _body;
+        public readonly DotExpression Body;
 
-        private readonly Environment _env;
+        public readonly Environment Env;
 
         public DotProcedure(DotExpression parameters, DotExpression body,
             Environment env)
@@ -145,14 +144,12 @@ namespace DotLisp.Types
                 throw new EvaluatorException("Parameter list expected!");
             }
 
-            Console.WriteLine(l.PrettyPrint());
-
             var names = l.Expressions.Cast<DotSymbol>().Select(s => s.Name)
                 .ToList();
 
-            _parameters = names;
-            _body = body;
-            _env = env;
+            Parameters = names;
+            Body = body;
+            Env = env;
         }
 
         public DotExpression Call(DotExpression args)
@@ -168,13 +165,13 @@ namespace DotLisp.Types
                 exps = l.Expressions;
             }
 
-            return Evaluator.Eval(_body,
-                new Environment(_parameters, exps, _env));
+            return Evaluator.Eval(Body,
+                new Environment(Parameters, exps, Env));
         }
 
         public override string ToString()
         {
-            return $"procedure with {_parameters.Count} parameters";
+            return $"procedure with {Parameters.Count} parameters";
         }
     }
 }

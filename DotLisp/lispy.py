@@ -51,7 +51,7 @@ class InPort(object):
     tokenizer = r"""\s*(,@|[('`,)]|"(?:[\\].|[^\\"])*"|;.*|[^\s('"`,;)]*)(.*)"""
 
     def __init__(self, file):
-        self.file = file;
+        self.file = file
         self.line = ''
 
     def next_token(self):
