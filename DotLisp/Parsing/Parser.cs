@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using DotLisp.Exceptions;
 using DotLisp.Types;
@@ -52,24 +53,24 @@ namespace DotLisp.Parsing
             switch (token)
             {
                 case "(":
-                {
-                    if (tokens.Count == 0)
                     {
-                        throw new ParserException("Missing ')'!");
-                    }
+                        if (tokens.Count == 0)
+                        {
+                            throw new ParserException("Missing ')'!");
+                        }
 
-                    var l = new LinkedList<Expression>();
-                    while (tokens[0] != ")")
-                    {
-                        l.AddLast(ReadFromTokens(tokens));
-                    }
+                        var l = new LinkedList<Expression>();
+                        while (tokens[0] != ")")
+                        {
+                            l.AddLast(ReadFromTokens(tokens));
+                        }
 
-                    tokens.RemoveAt(0);
-                    return new List()
-                    {
-                        Expressions = l
-                    };
-                }
+                        tokens.RemoveAt(0);
+                        return new List()
+                        {
+                            Expressions = l
+                        };
+                    }
                 case ")":
                     throw new ParserException("Unexpected ')'!");
                 default:
@@ -142,8 +143,11 @@ namespace DotLisp.Parsing
             _inputStream = inputStream;
         }
 
-        // TODO: Change this to return strings
-        // Throw exception if eof is reached
+        public InPort(string input) : this(
+            new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input))))
+        {
+        }
+
         public string NextToken()
         {
             while (true)
@@ -225,6 +229,13 @@ namespace DotLisp.Parsing
         {
             var token1 = NextToken();
             return token1 == null ? new Symbol("eof") : ReadAhead(token1);
+        }
+
+        public Expression Read(string input)
+        {
+            _inputStream =
+                new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input)));
+            return Read();
         }
     }
 }

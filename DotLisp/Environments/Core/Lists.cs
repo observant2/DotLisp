@@ -69,7 +69,7 @@ namespace DotLisp.Environments.Core
                     }
 
                     return new List
-                        {Expressions = l.Expressions.Skip(1).ToLinkedList()};
+                    { Expressions = l.Expressions.Skip(1).ToLinkedList() };
                 });
         }
     }

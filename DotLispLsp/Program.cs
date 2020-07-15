@@ -113,16 +113,16 @@ namespace DotLispLsp
                         using var manager =
                             await languageServer.WorkDoneManager.Create(
                                 new WorkDoneProgressBegin()
-                                    {Title = "Doing some work..."});
+                                { Title = "Doing some work..." });
 
                         manager.OnNext(new WorkDoneProgressReport()
-                            {Message = "doing things..."});
+                        { Message = "doing things..." });
                         await Task.Delay(10000);
                         manager.OnNext(new WorkDoneProgressReport()
-                            {Message = "doing things... 1234"});
+                        { Message = "doing things... 1234" });
                         await Task.Delay(10000);
                         manager.OnNext(new WorkDoneProgressReport()
-                            {Message = "doing things... 56789"});
+                        { Message = "doing things... 56789" });
 
                         var logger =
                             languageServer.Services.GetService<ILogger<Foo>>();

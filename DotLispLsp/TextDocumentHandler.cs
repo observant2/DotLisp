@@ -157,7 +157,7 @@ namespace DotLispLsp
                         Detail = part,
                         Deprecated = true,
                         Kind = SymbolKind.Field,
-                        Tags = new[] {SymbolTag.Deprecated},
+                        Tags = new[] { SymbolTag.Deprecated },
                         Range =
                             new OmniSharp.Extensions.LanguageServer.Protocol.Models.
                                 Range(

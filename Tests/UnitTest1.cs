@@ -8,6 +8,8 @@ namespace Tests
 {
     public class UnitTest1
     {
+        private readonly InPort _inPort = new InPort("");
+
         [Fact]
         public void Math()
         {
@@ -47,13 +49,34 @@ namespace Tests
         [Fact]
         public void SpecialForms()
         {
+            If();
+            Cons();
+        }
+
+        private void If()
+        {
             Assert.Throws<EvaluatorException>(() => { Eval("(if)"); });
+
+            var result = Eval("(if true 2 1)");
+            Assert.IsType<Number>(result);
+            Assert.Equal(2, (result as Number).GetValue());
+
+            result = Eval("(if false 2 1)");
+            Assert.IsType<Number>(result);
+            Assert.Equal(1, (result as Number).GetValue());
+        }
+
+        private void Cons()
+        {
+            Assert.Throws<EvaluatorException>(() => { Eval("(cons 1 2)"); });
+
+            Assert.Equal("(1 2 3)", Parser.ToLisp(Eval("(cons 1 '(2 3))")));
         }
 
 
         private Expression Eval(string program)
         {
-            return Evaluator.Eval(Parser.Parse(program));
+            return Evaluator.Eval(_inPort.Read(program));
         }
     }
 }

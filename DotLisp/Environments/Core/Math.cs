@@ -15,16 +15,16 @@ namespace DotLisp.Environments.Core
                     switch (args)
                     {
                         case List l:
-                        {
-                            var sum = l.Expressions.Cast<Number>()
-                                .Select(s => s.GetValue())
-                                .Aggregate(reducer);
-
-                            return new Number()
                             {
-                                Float = sum
-                            };
-                        }
+                                var sum = l.Expressions.Cast<Number>()
+                                    .Select(s => s.GetValue())
+                                    .Aggregate(reducer);
+
+                                return new Number()
+                                {
+                                    Float = sum
+                                };
+                            }
                         default:
                             throw new EvaluatorException("Illegal arguments for +");
                     }
@@ -41,28 +41,28 @@ namespace DotLisp.Environments.Core
                         case Bool b:
                             return b;
                         case List l:
-                        {
-                            var numbers = l.Expressions.Cast<Number>()
-                                .Select(s => s.GetValue()).ToList();
+                            {
+                                var numbers = l.Expressions.Cast<Number>()
+                                    .Select(s => s.GetValue()).ToList();
 
-                            var (_, result) = numbers.Skip(1).Aggregate(
-                                (numbers[0], true), (tuple, b) =>
-                                {
-                                    var (a, resultSoFar) = tuple;
-
-                                    if (!resultSoFar)
+                                var (_, result) = numbers.Skip(1).Aggregate(
+                                    (numbers[0], true), (tuple, b) =>
                                     {
-                                        return (b, false);
-                                    }
+                                        var (a, resultSoFar) = tuple;
 
-                                    var predicateStillTrue = predicate(a, b);
+                                        if (!resultSoFar)
+                                        {
+                                            return (b, false);
+                                        }
 
-                                    return (b, predicateStillTrue);
-                                });
+                                        var predicateStillTrue = predicate(a, b);
+
+                                        return (b, predicateStillTrue);
+                                    });
 
 
-                            return new Bool(result);
-                        }
+                                return new Bool(result);
+                            }
                         default:
                             throw new Exception("Illegal arguments for BoolApply.");
                     }
@@ -79,30 +79,30 @@ namespace DotLisp.Environments.Core
                         case Symbol _:
                             return Bool.True();
                         case List l:
-                        {
-                            // TODO: extend equality to objects!
+                            {
+                                // TODO: extend equality to objects!
 
-                            var numbers = l.Expressions.Cast<Number>().ToList();
+                                var numbers = l.Expressions.Cast<Number>().ToList();
 
-                            var first = numbers[0];
+                                var first = numbers[0];
 
-                            var (_, result) = numbers.Skip(1).Aggregate(
-                                seed: (first, true), func: (tuple, b) =>
-                                {
-                                    var (a, resultSoFar) = tuple;
-
-                                    if (!resultSoFar)
+                                var (_, result) = numbers.Skip(1).Aggregate(
+                                    seed: (first, true), func: (tuple, b) =>
                                     {
-                                        return (b, false);
-                                    }
+                                        var (a, resultSoFar) = tuple;
 
-                                    var predicateStillTrue =
-                                        a.GetValue() == b.GetValue();
+                                        if (!resultSoFar)
+                                        {
+                                            return (b, false);
+                                        }
 
-                                    return (b, predicateStillTrue);
-                                });
-                            return new Bool(result);
-                        }
+                                        var predicateStillTrue =
+                                            a.GetValue() == b.GetValue();
+
+                                        return (b, predicateStillTrue);
+                                    });
+                                return new Bool(result);
+                            }
                     }
 
                     return Bool.False();
