@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -42,10 +43,12 @@ namespace DotLispLsp
         public Task<Unit> Handle(DidChangeTextDocumentParams notification,
             CancellationToken token)
         {
-            _logger.LogCritical("Critical");
-            _logger.LogDebug("Debug");
-            _logger.LogTrace("Trace");
-            _logger.LogInformation("Hello world!");
+            // _logger.LogCritical("Critical");
+            // _logger.LogDebug("Debug");
+            // _logger.LogTrace("Trace");
+            // _logger.LogInformation("Hello world!");
+            _logger.LogDebug($"SOMETHING DID CHANGE!!!! \n" +
+                             $"{notification.ContentChanges.Select(cc => $"{cc.Text}")}");
             return Unit.Task;
         }
 
@@ -115,7 +118,7 @@ namespace DotLispLsp
 
         public TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri)
         {
-            return new TextDocumentAttributes(uri, "csharp");
+            return new TextDocumentAttributes(uri, "dotlisp");
         }
     }
 
@@ -124,7 +127,7 @@ namespace DotLispLsp
         public MyDocumentSymbolHandler() : base(
             new DocumentSymbolRegistrationOptions()
             {
-                DocumentSelector = DocumentSelector.ForLanguage("csharp")
+                DocumentSelector = DocumentSelector.ForLanguage("dotlisp")
             })
         {
         }
@@ -157,7 +160,7 @@ namespace DotLispLsp
                         Detail = part,
                         Deprecated = true,
                         Kind = SymbolKind.Field,
-                        Tags = new[] { SymbolTag.Deprecated },
+                        Tags = new[] {SymbolTag.Deprecated},
                         Range =
                             new OmniSharp.Extensions.LanguageServer.Protocol.Models.
                                 Range(

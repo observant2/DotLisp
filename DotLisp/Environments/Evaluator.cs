@@ -176,7 +176,7 @@ namespace DotLisp.Environments
                     // Instead of recursion, set the current environment and expressions
                     // to the function's environment and body.
                     env = new Environment(
-                        proc.Parameters, 
+                        proc.Parameters,
                         arguments.Expressions,
                         proc.Env);
                     x = proc.Body;

@@ -137,6 +137,10 @@ namespace DotLisp.Parsing
 
         private string _line = "";
 
+        public InPort()
+        {
+        }
+
         public InPort(StreamReader inputStream)
         {
             _inputStream = inputStream;
@@ -164,7 +168,8 @@ namespace DotLisp.Parsing
                 var match = _tokenizer.Match(_line);
                 var token = match.Groups[1].Value.Trim();
                 _line = _line.ReplaceFirst(token, "").Trim();
-                if (token != "" && token != ";")
+
+                if (token != "" && !token.StartsWith(";"))
                 {
                     return token;
                 }
@@ -230,7 +235,7 @@ namespace DotLisp.Parsing
         public DotExpression Read()
         {
             var token1 = NextToken();
-            return token1 == null ? new DotSymbol("eof") : ReadAhead(token1);
+            return token1 == null ? null : ReadAhead(token1);
         }
 
         public DotExpression Read(string input)
