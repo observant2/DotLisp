@@ -70,8 +70,8 @@ namespace Tests
 
         private void Cons()
         {
-            Assert.Throws<EvaluatorException>(() => { Eval("(cons 1 2)"); });
-
+            Assert.Equal("(8 12)",
+                Eval("(cons 8 12)").ToString());
             Assert.Equal("(1 2 3)",
                 Eval("(cons 1 '(2 3))").ToString());
         }

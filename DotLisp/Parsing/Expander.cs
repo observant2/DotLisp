@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using DotLisp.Environments;
+using DotLisp.Environments.Core;
 using DotLisp.Exceptions;
 using DotLisp.Types;
 
@@ -30,76 +27,78 @@ namespace DotLisp.Parsing
 
             var args = l.Expressions.Skip(1).ToList();
 
-            if (!(l.Expressions.First() is DotSymbol op))
+            // if (!(l.Expressions.First() is DotSymbol op))
+            // {
+            //     throw new EvaluatorException(
+            //         "Function or special form expected!");
+            // }
+
+            if (l.Expressions.First() is DotSymbol op)
             {
-                throw new EvaluatorException(
-                    "Function or special form expected!");
-            }
-
-            if (op.Name == "quote")
-            {
-                return expression;
-            }
-
-            // TODO Find a generic way to check function and procedure argument length and type
-
-            if (op.Name == "def" || op.Name == "defmacro")
-            {
-                var defBody = Expand(args.ElementAt(1));
-
-                if (op.Name == "defmacro")
+                if (op.Name == "quote")
                 {
-                    if (!topLevel)
-                    {
-                        throw new ParserException(
-                            "'defmacro' only allowed at top level!");
-                    }
-
-                    var procedure = Evaluator.Eval(defBody);
-
-                    if (!(procedure is DotProcedure dp))
-                    {
-                        throw new ParserException(
-                            "A macro must be a procedure");
-                    }
-
-                    // Add macro
-                    GlobalEnvironment.MacroTable.Add(
-                        (args.ElementAt(0) as DotSymbol).Name,
-                        dp
-                    );
-
-                    return DotBool.True();
+                    return expression;
                 }
 
-                var expandedDefinition = new LinkedList<DotExpression>();
+                // TODO Find a generic way to check function and procedure argument length and type
 
-                expandedDefinition.AddLast(op);
-                expandedDefinition.AddLast(args.First());
-                expandedDefinition.AddLast(defBody);
-
-                return new DotList()
+                if (op.Name == "def" || op.Name == "defmacro")
                 {
-                    Expressions = expandedDefinition
-                };
-            }
+                    var defBody = Expand(args.ElementAt(1));
 
-            if (op.Name == "quasiquote")
-            {
-                return ExpandQuasiquote(args.First());
-            }
+                    if (op.Name == "defmacro")
+                    {
+                        if (!topLevel)
+                        {
+                            throw new ParserException(
+                                "'defmacro' only allowed at top level!");
+                        }
 
-            if (GlobalEnvironment.MacroTable.ContainsKey(op.Name))
-            {
-                // call macro
-                var macro = GlobalEnvironment.MacroTable[op.Name];
-                var macroArgs = new DotList()
+                        var procedure = Evaluator.Eval(defBody);
+
+                        if (!(procedure is DotProcedure dp))
+                        {
+                            throw new ParserException(
+                                "A macro must be a procedure");
+                        }
+
+                        // Add macro
+                        GlobalEnvironment.MacroTable.Add(
+                            (args.ElementAt(0) as DotSymbol).Name,
+                            dp
+                        );
+
+                        return DotBool.True();
+                    }
+
+                    var expandedDefinition = new LinkedList<DotExpression>();
+
+                    expandedDefinition.AddLast(op);
+                    expandedDefinition.AddLast(args.First());
+                    expandedDefinition.AddLast(defBody);
+
+                    return new DotList()
+                    {
+                        Expressions = expandedDefinition
+                    };
+                }
+
+                if (op.Name == "quasiquote")
                 {
-                    Expressions = args.ToLinkedList()
-                };
+                    return ExpandQuasiquote(args.First());
+                }
 
-                //TODO: doesn't work!
-                return Expand(macro.Call(macroArgs), topLevel);
+                if (GlobalEnvironment.MacroTable.ContainsKey(op.Name))
+                {
+                    // call macro
+                    var macro = GlobalEnvironment.MacroTable[op.Name];
+                    var macroArgs = new DotList()
+                    {
+                        Expressions = args.ToLinkedList()
+                    };
+
+                    return Expand(macro.Call(macroArgs), topLevel);
+                }
             }
 
             l.Expressions = l.Expressions
@@ -110,190 +109,40 @@ namespace DotLisp.Parsing
 
         private static DotExpression ExpandQuasiquote(DotExpression expression)
         {
-            // TODO
-            return expression;
-        }
-    }
+            Func<DotExpression, bool> isPair =
+                exp => exp is DotList l && l.Expressions.Count != 0;
 
-    /// It's basically a reader.
-    /// It also converts special characters to lispy function calls,
-    /// for example: '(1 2 3) -> (quote (1 2 3)), so that the
-    /// expander and the evaluator don't have to deal with that.
-    public class InPort
-    {
-        private readonly Regex _tokenizer = new Regex(
-            @"\s*(,@|[('`,)]|""(?:[\\].|[^\\""])*""|;.*|[^\s('""`,;)]*)(.*)"
-        );
-
-        private Dictionary<string, string> _quotes = new Dictionary<string, string>()
-        {
-            ["'"] = "quote",
-            ["`"] = "quasiquote",
-            [","] = "unquote",
-            [",@"] = "unquotesplicing"
-        };
-
-        private StreamReader _inputStream;
-
-        private string _line = "";
-
-        public InPort()
-        {
-        }
-
-        public InPort(StreamReader inputStream)
-        {
-            _inputStream = inputStream;
-        }
-
-        public InPort(Stream stream) : this(new StreamReader(stream))
-        {
-        }
-
-        public InPort(string input) : this(
-            new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input))))
-        {
-        }
-
-        public string NextToken()
-        {
-            while (true)
+            if (!isPair(expression)) // `x => 'x
             {
-                if (string.IsNullOrEmpty(_line))
-                {
-                    _line = _inputStream.ReadLine();
-                }
+                var quotedExpr = new LinkedList<DotExpression>();
+                quotedExpr.AddLast(new DotSymbol("quote"));
+                quotedExpr.AddLast(expression);
 
-                if (string.IsNullOrEmpty(_line) && _inputStream.EndOfStream)
-                {
-                    return null;
-                }
-
-                var match = _tokenizer.Match(_line);
-                var token = match.Groups[1].Value.Trim();
-                _line = _line.ReplaceFirst(token, "").Trim();
-
-                if (token != "" && !token.StartsWith(";"))
-                {
-                    return token;
-                }
-            }
-        }
-
-        public static string ReadChar(InPort inPort)
-        {
-            if (inPort._line != "")
-            {
-                var ch = "" + inPort._line[0];
-                inPort._line = inPort._line.Substring(1);
-                return ch;
-            }
-            else
-            {
-                return "" + Convert.ToChar(inPort._inputStream.Read());
-            }
-        }
-
-        private DotExpression ReadAhead(string token)
-        {
-            switch (token)
-            {
-                case "(":
-                    var l = new DotList()
-                    {
-                        Expressions = new LinkedList<DotExpression>()
-                    };
-                    while (true)
-                    {
-                        token = NextToken();
-                        if (token == ")")
-                        {
-                            return l;
-                        }
-
-                        l.Expressions.AddLast(ReadAhead(token));
-                    }
-
-                case ")":
-                    throw new ParserException("Unexpected ')'!");
+                return quotedExpr.ToDotList();
             }
 
-            if (_quotes.ContainsKey(token))
+            var list = (expression as DotList).Expressions;
+
+            if (list.First() is DotSymbol ds && ds.Name == "unquote")
             {
-                // convert to real expression
-                var keyword = _quotes[token];
-                var exps = new LinkedList<DotExpression>();
-
-                exps.AddLast(new DotSymbol(keyword));
-                exps.AddLast(Read());
-
-                return new DotList
-                {
-                    Expressions = exps
-                };
+                return list.ElementAt(1);
             }
 
-            return ParseAtom(token);
-        }
-
-        public DotExpression Read()
-        {
-            var token1 = NextToken();
-            return token1 == null ? null : ReadAhead(token1);
-        }
-
-        public DotExpression Read(string input)
-        {
-            _inputStream =
-                new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input)));
-            return Read();
-        }
-
-        public DotExpression Read(FileStream fileStream)
-        {
-            _inputStream = new StreamReader(fileStream);
-            return Read();
-        }
-
-        public static DotAtom ParseAtom(string token)
-        {
-            if (token[0] == '"')
+            if (isPair(expression) &&
+                (list.First() is DotList uqList)
+                && (uqList.Expressions.First() as DotSymbol).Name ==
+                "unquotesplicing")
             {
-                return new DotString
-                {
-                    Value =
-                        token.Substring(1, token.Length - 2)
-                };
+                // TODO
             }
 
-            if (token == "true" || token == "false")
-            {
-                return new DotBool()
-                {
-                    Value = bool.Parse(token)
-                };
-            }
+            var ret = new LinkedList<DotExpression>();
+            ret.AddLast(new DotSymbol("cons"));
+            ret.AddLast(ExpandQuasiquote(list.First()));
+            var rest = list.Skip(1).ToDotList();
+            ret.AddLast(ExpandQuasiquote(rest));
 
-            if (int.TryParse(token, out var integer))
-            {
-                return new DotNumber()
-                {
-                    Int = integer
-                };
-            }
-
-            if (float.TryParse(token,
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out var floating))
-            {
-                return new DotNumber()
-                {
-                    Float = floating
-                };
-            }
-
-            return new DotSymbol(token);
+            return ret.ToDotList();
         }
     }
 }

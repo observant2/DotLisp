@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DotLisp.Types;
 using Newtonsoft.Json;
 
 namespace DotLisp
@@ -23,6 +24,14 @@ namespace DotLisp
         public static LinkedList<T> ToLinkedList<T>(this IEnumerable<T> list)
         {
             return new LinkedList<T>(list);
+        }
+
+        public static DotList ToDotList(this IEnumerable<DotExpression> list)
+        {
+            return new DotList()
+            {
+                Expressions = list.ToLinkedList()
+            };
         }
 
         public static string PrettyPrint(this object o)

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using DotLisp.Exceptions;
 using DotLisp.Types;
 
@@ -36,19 +37,19 @@ namespace DotLisp.Environments.Core
                     if (!(list is DotList argList) || argList.Expressions.Count != 2)
                     {
                         throw new EvaluatorException(
-                            "'cons' expects at least 2 arguments!");
+                            "'cons' expects 2 arguments!");
                     }
 
-                    if (!(argList.Expressions.ElementAt(1) is DotList destinationList))
+                    if (argList.Expressions.ElementAt(1) is DotList destinationList)
                     {
-                        throw new EvaluatorException(
-                            "'cons' expects second argument to be a list");
+                        destinationList.Expressions.AddFirst(
+                            argList.Expressions.First());
+
+                        return destinationList;
                     }
 
-                    destinationList.Expressions.AddFirst(
-                        argList.Expressions.First());
 
-                    return destinationList;
+                    return argList;
                 });
         }
 
@@ -69,7 +70,7 @@ namespace DotLisp.Environments.Core
                     }
 
                     return new DotList
-                    { Expressions = l.Expressions.Skip(1).ToLinkedList() };
+                        {Expressions = l.Expressions.Skip(1).ToLinkedList()};
                 });
         }
     }
