@@ -7,7 +7,7 @@ namespace DotLisp.Environments
 {
     public static class Evaluator
     {
-        private static readonly Environment GlobalEnvironment =
+        public static readonly Environment GlobalEnvironment =
             new GlobalEnvironment();
 
         // public Evaluator()
@@ -58,12 +58,6 @@ namespace DotLisp.Environments
 
                 // everything else is a list
                 var l = x as DotList;
-
-                if (l.Expressions.Count == 0)
-                {
-                    throw new EvaluatorException(
-                        "An empty list needs to be quoted!");
-                }
 
                 if (!(l.Expressions.First() is DotSymbol op))
                 {

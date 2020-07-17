@@ -72,17 +72,16 @@ namespace Tests
         {
             Assert.Throws<EvaluatorException>(() => { Eval("(cons 1 2)"); });
 
-            Assert.Equal("(1 2 3)", Parser.ToLisp(
-                Eval("(cons 1 '(2 3))")));
+            Assert.Equal("(1 2 3)",
+                Eval("(cons 1 '(2 3))").ToString());
         }
 
         private void Do()
         {
-            Assert.Equal("10", Parser.ToLisp(
-                Eval("(do (def y 3) (+ 5 5))")));
-            
-            Assert.Equal("3", Parser.ToLisp(
-                Eval("y")));
+            Assert.Equal("10",
+                Eval("(do (def y 3) (+ 5 5))").ToString());
+
+            Assert.Equal("3", Eval("y").ToString());
         }
 
 

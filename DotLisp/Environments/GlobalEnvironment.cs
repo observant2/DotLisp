@@ -18,6 +18,9 @@ namespace DotLisp.Environments
         {
         }
 
+        public static readonly Dictionary<string, DotProcedure> MacroTable =
+            new Dictionary<string, DotProcedure>();
+
         private static readonly Dictionary<string, DotExpression> InitData =
             new Dictionary<string, DotExpression>()
             {
@@ -30,18 +33,18 @@ namespace DotLisp.Environments
                 [">="] = Math.Compare((a, b) => a >= b),
                 ["<"] = Math.Compare((a, b) => a < b),
                 ["<="] = Math.Compare((a, b) => a <= b),
+                // TODO: implement general equals
                 ["=="] = Math.Equals(),
 
                 ["PI"] = new DotNumber() {Float = (float) System.Math.PI},
                 ["E"] = new DotNumber() {Float = (float) System.Math.E},
+                ["nil"] = new DotSymbol("nil"),
 
                 ["first"] = Lists.First(),
                 ["rest"] = Lists.Rest(),
                 ["cons"] = Lists.Cons(),
                 ["load"] = DotFunc.From(expr =>
                 {
-                    // TODO: Implement using repl(), see lispy.py
-                    // otherwise I'd need to insert a (do ...) which I don't want?
                     var argumentException = new EvaluatorException(
                         $"'load' expects a path as string.");
 
@@ -88,7 +91,7 @@ namespace DotLisp.Environments
                         Console.Write(prompt);
                     }
 
-                    var x = inPort.Read();
+                    var x = Expander.Expand(inPort.Read(), true);
 
                     if (x == null)
                     {

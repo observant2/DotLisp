@@ -4,7 +4,12 @@
     (fn (x)
         (* x x)))
 
+(defmacro when (fn (test consequence)
+        (if test
+            consequence
+            nil)))
 
+; (nil) ;<-- this is a problem!
 
 
 ; (quote (testing 1 (2.0) -3.14e159))

@@ -1,124 +1,125 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using DotLisp.Environments;
 using DotLisp.Exceptions;
 using DotLisp.Types;
 
 namespace DotLisp.Parsing
 {
-    public static class Parser
+    public static class Expander
     {
-        public static string ToLisp(DotExpression exp)
+        public static DotExpression Expand(DotExpression expression,
+            bool topLevel = false)
         {
-            if (exp is DotList l)
+            if (!(expression is DotList l))
             {
-                return "(" + string.Join(" ",
-                               l.Expressions.Select(ToLisp))
-                           + ")";
+                // constants can't be expanded
+                return expression;
             }
 
-            return exp.ToString();
-        }
-
-        public static List<string> Tokenize(string input)
-        {
-            return input
-                .Replace("(", " ( ")
-                .Replace(")", " ) ")
-                .Split(" ")
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .ToList();
-        }
-
-        public static DotExpression Parse(string program)
-        {
-            return ReadFromTokens(Tokenize(program));
-        }
-
-        public static DotExpression ReadFromTokens(List<string> tokens)
-        {
-            if (tokens.Count == 0)
+            if (l.Expressions.Count == 0)
             {
-                throw new ParserException("Unexpected EOF!");
+                throw new ParserException(
+                    "An empty list needs to be quoted!");
             }
 
-            var token = tokens[0];
-            tokens.RemoveAt(0);
+            var args = l.Expressions.Skip(1).ToList();
 
-            switch (token)
+            if (!(l.Expressions.First() is DotSymbol op))
             {
-                case "(":
+                throw new EvaluatorException(
+                    "Function or special form expected!");
+            }
+
+            if (op.Name == "quote")
+            {
+                return expression;
+            }
+
+            // TODO Find a generic way to check function and procedure argument length and type
+
+            if (op.Name == "def" || op.Name == "defmacro")
+            {
+                var defBody = Expand(args.ElementAt(1));
+
+                if (op.Name == "defmacro")
                 {
-                    if (tokens.Count == 0)
+                    if (!topLevel)
                     {
-                        throw new ParserException("Missing ')'!");
+                        throw new ParserException(
+                            "'defmacro' only allowed at top level!");
                     }
 
-                    var l = new LinkedList<DotExpression>();
-                    while (tokens[0] != ")")
+                    var procedure = Evaluator.Eval(defBody);
+
+                    if (!(procedure is DotProcedure dp))
                     {
-                        l.AddLast(ReadFromTokens(tokens));
+                        throw new ParserException(
+                            "A macro must be a procedure");
                     }
 
-                    tokens.RemoveAt(0);
-                    return new DotList()
-                    {
-                        Expressions = l
-                    };
+                    // Add macro
+                    GlobalEnvironment.MacroTable.Add(
+                        (args.ElementAt(0) as DotSymbol).Name,
+                        dp
+                    );
+
+                    return DotBool.True();
                 }
-                case ")":
-                    throw new ParserException("Unexpected ')'!");
-                default:
-                    return ParseAtom(token);
+
+                var expandedDefinition = new LinkedList<DotExpression>();
+
+                expandedDefinition.AddLast(op);
+                expandedDefinition.AddLast(args.First());
+                expandedDefinition.AddLast(defBody);
+
+                return new DotList()
+                {
+                    Expressions = expandedDefinition
+                };
             }
+
+            if (op.Name == "quasiquote")
+            {
+                return ExpandQuasiquote(args.First());
+            }
+
+            if (GlobalEnvironment.MacroTable.ContainsKey(op.Name))
+            {
+                // call macro
+                var macro = GlobalEnvironment.MacroTable[op.Name];
+                var macroArgs = new DotList()
+                {
+                    Expressions = args.ToLinkedList()
+                };
+
+                //TODO: doesn't work!
+                return Expand(macro.Call(macroArgs), topLevel);
+            }
+
+            l.Expressions = l.Expressions
+                .Select(exp => Expand(exp, false))
+                .ToLinkedList();
+            return l;
         }
 
-        public static DotAtom ParseAtom(string token)
+        private static DotExpression ExpandQuasiquote(DotExpression expression)
         {
-            if (token[0] == '"')
-            {
-                return new DotString
-                {
-                    Value =
-                        token.Substring(1, token.Length - 2)
-                };
-            }
-
-            if (token == "true" || token == "false")
-            {
-                return new DotBool()
-                {
-                    Value = bool.Parse(token)
-                };
-            }
-
-            if (int.TryParse(token, out var integer))
-            {
-                return new DotNumber()
-                {
-                    Int = integer
-                };
-            }
-
-            if (float.TryParse(token,
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out var floating))
-            {
-                return new DotNumber()
-                {
-                    Float = floating
-                };
-            }
-
-            return new DotSymbol(token);
+            // TODO
+            return expression;
         }
     }
 
+    /// It's basically a reader.
+    /// It also converts special characters to lispy function calls,
+    /// for example: '(1 2 3) -> (quote (1 2 3)), so that the
+    /// expander and the evaluator don't have to deal with that.
     public class InPort
     {
         private readonly Regex _tokenizer = new Regex(
@@ -144,6 +145,10 @@ namespace DotLisp.Parsing
         public InPort(StreamReader inputStream)
         {
             _inputStream = inputStream;
+        }
+
+        public InPort(Stream stream) : this(new StreamReader(stream))
+        {
         }
 
         public InPort(string input) : this(
@@ -229,7 +234,7 @@ namespace DotLisp.Parsing
                 };
             }
 
-            return Parser.ParseAtom(token);
+            return ParseAtom(token);
         }
 
         public DotExpression Read()
@@ -249,6 +254,47 @@ namespace DotLisp.Parsing
         {
             _inputStream = new StreamReader(fileStream);
             return Read();
+        }
+
+        public static DotAtom ParseAtom(string token)
+        {
+            if (token[0] == '"')
+            {
+                return new DotString
+                {
+                    Value =
+                        token.Substring(1, token.Length - 2)
+                };
+            }
+
+            if (token == "true" || token == "false")
+            {
+                return new DotBool()
+                {
+                    Value = bool.Parse(token)
+                };
+            }
+
+            if (int.TryParse(token, out var integer))
+            {
+                return new DotNumber()
+                {
+                    Int = integer
+                };
+            }
+
+            if (float.TryParse(token,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var floating))
+            {
+                return new DotNumber()
+                {
+                    Float = floating
+                };
+            }
+
+            return new DotSymbol(token);
         }
     }
 }
