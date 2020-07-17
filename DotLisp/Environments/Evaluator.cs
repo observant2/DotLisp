@@ -61,8 +61,7 @@ namespace DotLisp.Environments
 
                 if (!(l.Expressions.First() is DotSymbol op))
                 {
-                    throw new EvaluatorException(
-                        "Function or special form expected!");
+                    throw FunctionExpected();
                 }
 
                 var args = l.Expressions.Skip(1).ToList();
@@ -176,7 +175,18 @@ namespace DotLisp.Environments
                     x = proc.Body;
                     continue;
                 }
+
+                if (functionToCall is DotSymbol)
+                {
+                    throw FunctionExpected();
+                }
             }
+        }
+
+        private static EvaluatorException FunctionExpected()
+        {
+            return new EvaluatorException(
+                "Function or special form expected!");
         }
     }
 }

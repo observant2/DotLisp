@@ -9,7 +9,7 @@
             consequence
             nil)))
 
-; (nil) ;<-- this is a problem!
+; (nil) ;<-- this is a problem! Same as (PI)
 
 
 ; (quote (testing 1 (2.0) -3.14e159))
