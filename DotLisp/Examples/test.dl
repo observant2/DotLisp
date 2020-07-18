@@ -1,5 +1,6 @@
 ﻿(def testfile "../../../Examples/test.dl")
 (def x 2)
+(def lst '(1 2 3))
 (def square
     (fn (x)
         (* x x)))

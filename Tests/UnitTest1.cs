@@ -8,8 +8,13 @@ namespace Tests
 {
     public class UnitTest1
     {
-        // TODO: Clear environment after each test
         private readonly InPort _inPort = new InPort("");
+
+        // runs before every test
+        public UnitTest1()
+        {
+            Evaluator.ClearEnvironment();
+        }
 
         [Fact]
         public void Math()
@@ -84,10 +89,18 @@ namespace Tests
             Assert.Equal("3", Eval("y").ToString());
         }
 
+        [Fact]
+        public void Macros()
+        {
+            Eval("(def lst '(1 2 3))");
+
+            Assert.Equal("(1 2 3 4 5)",
+                Eval("`(,@lst ,@'(4 5))").ToString());
+        }
 
         private DotExpression Eval(string program)
         {
-            return Evaluator.Eval(_inPort.Read(program));
+            return Evaluator.Eval(Expander.Expand(_inPort.Read(program)));
         }
     }
 }

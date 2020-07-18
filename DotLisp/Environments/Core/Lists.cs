@@ -53,6 +53,27 @@ namespace DotLisp.Environments.Core
                 });
         }
 
+        public static DotExpression Concat()
+        {
+            return DotFunc.From(
+                (list) =>
+                {
+                    var args = list as DotList;
+
+                    return args.Expressions.SelectMany(arg =>
+                    {
+                        if (arg is DotList lst)
+                        {
+                            return lst.Expressions;
+                        }
+
+                        var ret = new LinkedList<DotExpression>();
+                        ret.AddLast(arg);
+                        return ret;
+                    }).ToDotList();
+                });
+        }
+
         public static DotExpression Rest()
         {
             return DotFunc.From(
@@ -70,7 +91,7 @@ namespace DotLisp.Environments.Core
                     }
 
                     return new DotList
-                        {Expressions = l.Expressions.Skip(1).ToLinkedList()};
+                    { Expressions = l.Expressions.Skip(1).ToLinkedList() };
                 });
         }
     }

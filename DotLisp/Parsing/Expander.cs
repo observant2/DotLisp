@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using DotLisp.Environments;
-using DotLisp.Environments.Core;
 using DotLisp.Exceptions;
 using DotLisp.Types;
 
 namespace DotLisp.Parsing
 {
+    /// The main purpose of the expander is to
+    /// expand macros and quotes
     public static class Expander
     {
         public static DotExpression Expand(DotExpression expression,
@@ -133,7 +134,16 @@ namespace DotLisp.Parsing
                 && (uqList.Expressions.First() as DotSymbol).Name ==
                 "unquotesplicing")
             {
-                // TODO
+                var first = uqList.Expressions.Skip(1).First();
+                var others = list.Skip(1).ToDotList();
+
+                var expandedSplice = new LinkedList<DotExpression>();
+
+                expandedSplice.AddLast(new DotSymbol("concat"));
+                expandedSplice.AddLast(first);
+                expandedSplice.AddLast(ExpandQuasiquote(others));
+
+                return expandedSplice.ToDotList();
             }
 
             var ret = new LinkedList<DotExpression>();

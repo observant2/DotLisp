@@ -36,13 +36,14 @@ namespace DotLisp.Environments
                 // TODO: implement general equals
                 ["=="] = Math.Equals(),
 
-                ["PI"] = new DotNumber() {Float = (float) System.Math.PI},
-                ["E"] = new DotNumber() {Float = (float) System.Math.E},
+                ["PI"] = new DotNumber() { Float = (float)System.Math.PI },
+                ["E"] = new DotNumber() { Float = (float)System.Math.E },
                 ["nil"] = new DotSymbol("nil"),
 
                 ["first"] = Lists.First(),
                 ["rest"] = Lists.Rest(),
                 ["cons"] = Lists.Cons(),
+                ["concat"] = Lists.Concat(),
                 ["load"] = DotFunc.From(expr =>
                 {
                     var argumentException = new EvaluatorException(

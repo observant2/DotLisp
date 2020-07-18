@@ -21,6 +21,7 @@ namespace DotLisp.Parsing
 
         private Dictionary<string, string> _quotes = new Dictionary<string, string>()
         {
+            // TODO: these words have to be illegal symbol names...?!
             ["'"] = "quote",
             ["`"] = "quasiquote",
             [","] = "unquote",

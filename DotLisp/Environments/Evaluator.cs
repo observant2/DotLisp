@@ -7,7 +7,7 @@ namespace DotLisp.Environments
 {
     public static class Evaluator
     {
-        public static readonly Environment GlobalEnvironment =
+        public static Environment GlobalEnvironment =
             new GlobalEnvironment();
 
         // public Evaluator()
@@ -71,76 +71,76 @@ namespace DotLisp.Environments
                     case "quote":
                         return args[0];
                     case "if":
-                    {
-                        if (l.Expressions.Count != 4)
                         {
-                            throw new EvaluatorException(
-                                "'if' requires 2 parameters!");
+                            if (l.Expressions.Count != 4)
+                            {
+                                throw new EvaluatorException(
+                                    "'if' requires 2 parameters!");
+                            }
+
+                            var test = args[0];
+                            var consequence = args[1];
+                            var alternative = args[2];
+
+                            if (!(Eval(test, env) is DotBool b))
+                            {
+                                throw new EvaluatorException("'if' requires a bool!");
+                            }
+
+                            var toEval = b.Value ? consequence : alternative;
+
+                            x = Eval(toEval, env);
+                            continue;
                         }
-
-                        var test = args[0];
-                        var consequence = args[1];
-                        var alternative = args[2];
-
-                        if (!(Eval(test, env) is DotBool b))
-                        {
-                            throw new EvaluatorException("'if' requires a bool!");
-                        }
-
-                        var toEval = b.Value ? consequence : alternative;
-
-                        x = Eval(toEval, env);
-                        continue;
-                    }
                     case "set!":
-                    {
-                        var (symbol, exp) = (args[0], args[1]);
-                        if (!(symbol is DotSymbol s))
                         {
-                            throw new EvaluatorException(
-                                "'set!' expects a symbol name as first parameter!");
-                        }
+                            var (symbol, exp) = (args[0], args[1]);
+                            if (!(symbol is DotSymbol s))
+                            {
+                                throw new EvaluatorException(
+                                    "'set!' expects a symbol name as first parameter!");
+                            }
 
-                        var foundEnv = env.Find(s.Name);
-                        if (foundEnv?.Data[s.Name] == null)
-                        {
-                            throw new EvaluatorException(
-                                $"'set!': symbol '{s.Name}' not found.");
-                        }
+                            var foundEnv = env.Find(s.Name);
+                            if (foundEnv?.Data[s.Name] == null)
+                            {
+                                throw new EvaluatorException(
+                                    $"'set!': symbol '{s.Name}' not found.");
+                            }
 
-                        var data = Eval(exp, env);
-                        foundEnv.Data[s.Name] = data;
-                        return data;
-                    }
+                            var data = Eval(exp, env);
+                            foundEnv.Data[s.Name] = data;
+                            return data;
+                        }
                     case "def":
-                    {
-                        var name = (args[0] as DotSymbol).Name;
-                        if (env.Data.ContainsKey(name))
                         {
-                            throw new EvaluatorException(
-                                $"Symbol '{name}' already defined!");
-                        }
+                            var name = (args[0] as DotSymbol).Name;
+                            if (env.Data.ContainsKey(name))
+                            {
+                                throw new EvaluatorException(
+                                    $"Symbol '{name}' already defined!");
+                            }
 
-                        var data = Eval(args[1], env);
-                        env.Data.Add(name, data);
-                        return data;
-                    }
+                            var data = Eval(args[1], env);
+                            env.Data.Add(name, data);
+                            return data;
+                        }
                     case "fn":
-                    {
-                        var (parameters, body) = (args[0], args[1]);
-                        return new DotProcedure(parameters, body, env);
-                    }
-                    case "do":
-                    {
-                        foreach (var expression in args.SkipLast(1))
                         {
-                            Eval(expression, env);
+                            var (parameters, body) = (args[0], args[1]);
+                            return new DotProcedure(parameters, body, env);
                         }
+                    case "do":
+                        {
+                            foreach (var expression in args.SkipLast(1))
+                            {
+                                Eval(expression, env);
+                            }
 
-                        // return only value of last expression
-                        x = args.Last();
-                        continue;
-                    }
+                            // return only value of last expression
+                            x = args.Last();
+                            continue;
+                        }
                 }
 
                 // all other special forms failed to match
@@ -150,7 +150,7 @@ namespace DotLisp.Environments
 
 
                 var arguments = new DotList()
-                    {Expressions = new LinkedList<DotExpression>()};
+                { Expressions = new LinkedList<DotExpression>() };
                 foreach (var exp in exps.Skip(1).ToList())
                 {
                     arguments.Expressions.AddLast(Eval(exp, env));
@@ -187,6 +187,11 @@ namespace DotLisp.Environments
         {
             return new EvaluatorException(
                 "Function or special form expected!");
+        }
+
+        public static void ClearEnvironment()
+        {
+            GlobalEnvironment = new GlobalEnvironment();
         }
     }
 }
