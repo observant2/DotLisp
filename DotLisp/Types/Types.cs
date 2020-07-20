@@ -9,6 +9,9 @@ namespace DotLisp.Types
 {
     public abstract class DotExpression
     {
+        public int Line { get; set; }
+        public int Column { get; set; }
+
         public new abstract string ToString();
     }
 
@@ -20,9 +23,11 @@ namespace DotLisp.Types
     {
         public string Name { get; set; }
 
-        public DotSymbol(string name)
+        public DotSymbol(string name, int line, int column)
         {
             Name = name;
+            Line = line;
+            Column = column;
         }
 
         public override string ToString()

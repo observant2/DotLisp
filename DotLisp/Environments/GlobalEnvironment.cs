@@ -38,7 +38,7 @@ namespace DotLisp.Environments
 
                 ["PI"] = new DotNumber() { Float = (float)System.Math.PI },
                 ["E"] = new DotNumber() { Float = (float)System.Math.E },
-                ["nil"] = new DotSymbol("nil"),
+                ["nil"] = new DotSymbol("nil", 0, 0),
 
                 ["first"] = Lists.First(),
                 ["rest"] = Lists.Rest(),

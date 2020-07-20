@@ -23,7 +23,7 @@ namespace DotLisp.Parsing
             if (l.Expressions.Count == 0)
             {
                 throw new ParserException(
-                    "An empty list needs to be quoted!");
+                    "An empty list needs to be quoted!", l.Line, l.Column);
             }
 
             var args = l.Expressions.Skip(1).ToList();
@@ -52,7 +52,7 @@ namespace DotLisp.Parsing
                         if (!topLevel)
                         {
                             throw new ParserException(
-                                "'defmacro' only allowed at top level!");
+                                "'defmacro' only allowed at top level!", op.Line, op.Column);
                         }
 
                         var procedure = Evaluator.Eval(defBody);
@@ -60,7 +60,7 @@ namespace DotLisp.Parsing
                         if (!(procedure is DotProcedure dp))
                         {
                             throw new ParserException(
-                                "A macro must be a procedure");
+                                "A macro must be a procedure", op.Line, op.Column);
                         }
 
                         // Add macro
@@ -116,7 +116,7 @@ namespace DotLisp.Parsing
             if (!isPair(expression)) // `x => 'x
             {
                 var quotedExpr = new LinkedList<DotExpression>();
-                quotedExpr.AddLast(new DotSymbol("quote"));
+                quotedExpr.AddLast(new DotSymbol("quote", expression.Line, expression.Column));
                 quotedExpr.AddLast(expression);
 
                 return quotedExpr.ToDotList();
@@ -139,7 +139,7 @@ namespace DotLisp.Parsing
 
                 var expandedSplice = new LinkedList<DotExpression>();
 
-                expandedSplice.AddLast(new DotSymbol("concat"));
+                expandedSplice.AddLast(new DotSymbol("concat", expression.Line, expression.Column));
                 expandedSplice.AddLast(first);
                 expandedSplice.AddLast(ExpandQuasiquote(others));
 
@@ -147,7 +147,7 @@ namespace DotLisp.Parsing
             }
 
             var ret = new LinkedList<DotExpression>();
-            ret.AddLast(new DotSymbol("cons"));
+            ret.AddLast(new DotSymbol("cons", expression.Line, expression.Column));
             ret.AddLast(ExpandQuasiquote(list.First()));
             var rest = list.Skip(1).ToDotList();
             ret.AddLast(ExpandQuasiquote(rest));

@@ -31,6 +31,8 @@ namespace DotLisp.Parsing
         private StreamReader _inputStream;
 
         private string _line = "";
+        public int CurColumn = 0;
+        public int CurLine = 0;
 
         public InPort()
         {
@@ -39,6 +41,8 @@ namespace DotLisp.Parsing
         public InPort(StreamReader inputStream)
         {
             _inputStream = inputStream;
+            CurLine = 0;
+            CurColumn = 0;
         }
 
         public InPort(Stream stream) : this(new StreamReader(stream))
@@ -57,6 +61,8 @@ namespace DotLisp.Parsing
                 if (string.IsNullOrEmpty(_line))
                 {
                     _line = _inputStream.ReadLine();
+                    CurLine += 1;
+                    CurColumn = 0;
                 }
 
                 if (string.IsNullOrEmpty(_line) && _inputStream.EndOfStream)
@@ -64,9 +70,16 @@ namespace DotLisp.Parsing
                     return null;
                 }
 
-                var match = _tokenizer.Match(_line);
-                var token = match.Groups[1].Value.Trim();
+                var match = _tokenizer.Match(_line).Groups[1].Value;
+                
+                CurColumn += _line.IndexOf(match, StringComparison.Ordinal) + 1;
+
+                var originalLineLength = _line.Length;
+                var token = match.Trim();
+                
                 _line = _line.ReplaceFirst(token, "").Trim();
+                
+                CurColumn += originalLineLength - _line.Length - token.Length; // take whitespace into account for error reporting!
 
                 if (token != "" && !token.StartsWith(";"))
                 {
@@ -96,6 +109,8 @@ namespace DotLisp.Parsing
                 case "(":
                     var l = new DotList()
                     {
+                        Line = CurLine,
+                        Column = CurColumn,
                         Expressions = new LinkedList<DotExpression>()
                     };
                     while (true)
@@ -110,7 +125,7 @@ namespace DotLisp.Parsing
                     }
 
                 case ")":
-                    throw new ParserException("Unexpected ')'!");
+                    throw new ParserException("Unexpected ')'!", CurLine, CurColumn);
             }
 
             if (_quotes.ContainsKey(token))
@@ -119,16 +134,18 @@ namespace DotLisp.Parsing
                 var keyword = _quotes[token];
                 var exps = new LinkedList<DotExpression>();
 
-                exps.AddLast(new DotSymbol(keyword));
+                exps.AddLast(new DotSymbol(keyword, CurLine, CurColumn));
                 exps.AddLast(Read());
 
                 return new DotList
                 {
+                    Line = CurLine,
+                    Column = CurColumn,
                     Expressions = exps
                 };
             }
 
-            return ParseAtom(token);
+            return ParseAtom(token, CurLine, CurColumn);
         }
 
         public DotExpression Read()
@@ -150,12 +167,14 @@ namespace DotLisp.Parsing
             return Read();
         }
 
-        public static DotAtom ParseAtom(string token)
+        public static DotAtom ParseAtom(string token, int line, int column)
         {
             if (token[0] == '"')
             {
                 return new DotString
                 {
+                    Line = line,
+                    Column = column,
                     Value =
                         token.Substring(1, token.Length - 2)
                 };
@@ -165,6 +184,8 @@ namespace DotLisp.Parsing
             {
                 return new DotBool()
                 {
+                    Line = line,
+                    Column = column,
                     Value = bool.Parse(token)
                 };
             }
@@ -173,6 +194,8 @@ namespace DotLisp.Parsing
             {
                 return new DotNumber()
                 {
+                    Line = line,
+                    Column = column,
                     Int = integer
                 };
             }
@@ -184,11 +207,13 @@ namespace DotLisp.Parsing
             {
                 return new DotNumber()
                 {
+                    Line = line,
+                    Column = column,
                     Float = floating
                 };
             }
 
-            return new DotSymbol(token);
+            return new DotSymbol(token, line, column);
         }
     }
 }
