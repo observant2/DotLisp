@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DotLisp.Parsing;
+using DotLisp.Types;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -132,6 +134,41 @@ namespace DotLispLsp
         {
         }
 
+        private List<SymbolInformationOrDocumentSymbol> ExtractSymbols(
+            List<SymbolInformationOrDocumentSymbol> container, DotExpression tree)
+        {
+            if (!(tree is DotList l))
+            {
+                return container;
+            }
+
+            foreach (var exp in l.Expressions)
+            {
+                if (exp is DotSymbol s)
+                {
+                    var range = new Range(new Position(s.Line, s.Column),
+                        new Position(s.Line,
+                            s.Column + s.Name.Length));
+                    container.Add(new DocumentSymbol()
+                    {
+                        Detail = "detail?",
+                        Deprecated = false,
+                        Kind = SymbolKind.Variable,
+                        Range = range,
+                        SelectionRange = range,
+                        Name = s.Name
+                    });
+                }
+
+                if (exp is DotList innerList)
+                {
+                    container.AddRange(ExtractSymbols(container, innerList));
+                }
+            }
+
+            return container;
+        }
+
         public override async Task<SymbolInformationOrDocumentSymbolContainer>
             Handle(DocumentSymbolParams request,
                 CancellationToken cancellationToken)
@@ -140,46 +177,14 @@ namespace DotLispLsp
             var content =
                 await File.ReadAllTextAsync(DocumentUri.GetFileSystemPath(request),
                     cancellationToken);
-            var lines = content.Split('\n');
+
+            var inPort = new InPort();
+            var parsedExpressions = Expander.Expand(inPort.Read(content));
+
             var symbols = new List<SymbolInformationOrDocumentSymbol>();
-            for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
-            {
-                var line = lines[lineIndex];
-                var parts = line.Split(' ', '.', '(', ')', '{', '}', '[', ']', ';');
-                var currentCharacter = 0;
-                foreach (var part in parts)
-                {
-                    if (string.IsNullOrWhiteSpace(part))
-                    {
-                        currentCharacter += part.Length + 1;
-                        continue;
-                    }
 
-                    symbols.Add(new DocumentSymbol()
-                    {
-                        Detail = part,
-                        Deprecated = true,
-                        Kind = SymbolKind.Field,
-                        Tags = new[] { SymbolTag.Deprecated },
-                        Range =
-                            new OmniSharp.Extensions.LanguageServer.Protocol.Models.
-                                Range(
-                                    new Position(lineIndex, currentCharacter),
-                                    new Position(lineIndex,
-                                        currentCharacter + part.Length)),
-                        SelectionRange =
-                            new OmniSharp.Extensions.LanguageServer.Protocol.Models.
-                                Range(
-                                    new Position(lineIndex, currentCharacter),
-                                    new Position(lineIndex,
-                                        currentCharacter + part.Length)),
-                        Name = part
-                    });
-                    currentCharacter += part.Length + 1;
-                }
-            }
+            symbols = ExtractSymbols(symbols, parsedExpressions);
 
-            // await Task.Delay(2000, cancellationToken);
             return symbols;
         }
     }

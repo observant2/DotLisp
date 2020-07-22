@@ -23,7 +23,7 @@ namespace DotLisp.Types
     {
         public string Name { get; set; }
 
-        public DotSymbol(string name, int line, int column)
+        public DotSymbol(string name, int line = 0, int column = 0)
         {
             Name = name;
             Line = line;

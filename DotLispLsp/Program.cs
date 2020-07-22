@@ -68,22 +68,8 @@ namespace DotLispLsp
                     })
                     .OnInitialize(async (server, request, token) =>
                     {
-                        var manager = server.WorkDoneManager.For(request,
-                            new WorkDoneProgressBegin()
-                            {
-                                Title = "Server is starting...",
-                                Percentage = 10,
-                            });
-                        workDone = manager;
-
                         server.Services.GetRequiredService<Foo>()
                             .Log(request.ToString());
-
-                        manager.OnNext(new WorkDoneProgressReport()
-                        {
-                            Percentage = 20,
-                            Message = "loading in progress"
-                        });
 
                         await new Task<InitializeResult>(() => new InitializeResult
                         {
@@ -93,70 +79,48 @@ namespace DotLispLsp
                     })
                     .OnInitialized(async (server, request, response, token) =>
                     {
-                        workDone.OnNext(new WorkDoneProgressReport()
-                        {
-                            Percentage = 40,
-                            Message = "loading almost done",
-                        });
-
-                        await Task.Delay(2000);
-
-                        workDone.OnNext(new WorkDoneProgressReport()
-                        {
-                            Message = "loading done",
-                            Percentage = 100,
-                        });
-                        workDone.OnCompleted();
                     })
                     .OnStarted(async (languageServer, result, token) =>
                     {
-                        using var manager =
-                            await languageServer.WorkDoneManager.Create(
-                                new WorkDoneProgressBegin()
-                                { Title = "Doing some work..." });
-
-                        manager.OnNext(new WorkDoneProgressReport()
-                        { Message = "doing things..." });
-                        await Task.Delay(10000);
-                        manager.OnNext(new WorkDoneProgressReport()
-                        { Message = "doing things... 1234" });
-                        await Task.Delay(10000);
-                        manager.OnNext(new WorkDoneProgressReport()
-                        { Message = "doing things... 56789" });
-
-                        var logger =
-                            languageServer.Services.GetService<ILogger<Foo>>();
-                        var configuration =
-                            await languageServer.Configuration.GetConfiguration(
-                                new ConfigurationItem()
-                                {
-                                    Section = "typescript",
-                                }, new ConfigurationItem()
-                                {
-                                    Section = "terminal",
-                                });
-
-                        var baseConfig = new JObject();
-                        foreach (var config in languageServer.Configuration
-                            .AsEnumerable())
-                        {
-                            baseConfig.Add(config.Key, config.Value);
-                        }
-
-                        logger.LogInformation("Base Config: {Config}", baseConfig);
-
-                        var scopedConfig = new JObject();
-                        foreach (var config in configuration.AsEnumerable())
-                        {
-                            scopedConfig.Add(config.Key, config.Value);
-                        }
-
-                        logger.LogInformation("Scoped Config: {Config}",
-                            scopedConfig);
+                        // using var manager =
+                        //     await languageServer.WorkDoneManager.Create(
+                        //         new WorkDoneProgressBegin()
+                        //         { Title = "Doing some work..." });
+                        //
+                        //
+                        // var logger =
+                        //     languageServer.Services.GetService<ILogger<Foo>>();
+                        // var configuration =
+                        //     await languageServer.Configuration.GetConfiguration(
+                        //         new ConfigurationItem()
+                        //         {
+                        //             Section = "typescript",
+                        //         }, new ConfigurationItem()
+                        //         {
+                        //             Section = "terminal",
+                        //         });
+                        //
+                        // var baseConfig = new JObject();
+                        // foreach (var config in languageServer.Configuration
+                        //     .AsEnumerable())
+                        // {
+                        //     baseConfig.Add(config.Key, config.Value);
+                        // }
+                        //
+                        // logger.LogInformation("Base Config: {Config}", baseConfig);
+                        //
+                        // var scopedConfig = new JObject();
+                        // foreach (var config in configuration.AsEnumerable())
+                        // {
+                        //     scopedConfig.Add(config.Key, config.Value);
+                        // }
+                        //
+                        // logger.LogInformation("Scoped Config: {Config}",
+                        //     scopedConfig);
                     })
             );
 
-            await server.WaitForExit;
+            // await server.WaitForExit;
         }
     }
 

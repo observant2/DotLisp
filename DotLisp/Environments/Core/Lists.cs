@@ -91,8 +91,24 @@ namespace DotLisp.Environments.Core
                     }
 
                     return new DotList
-                    { Expressions = l.Expressions.Skip(1).ToLinkedList() };
+                        {Expressions = l.Expressions.Skip(1).ToLinkedList()};
                 });
+        }
+
+        public static DotFunc Empty()
+        {
+            return DotFunc.From(exp =>
+            {
+                if (!(exp is DotList l) || l.Expressions.Count != 1)
+                {
+                    throw new EvaluatorException("'null?' expects one argument");
+                }
+
+                var param = l.Expressions.First();
+
+                return (param is DotList pl && pl.Expressions.Count == 0)
+                    .ToDotBool();
+            });
         }
     }
 }

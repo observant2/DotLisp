@@ -13,6 +13,8 @@ namespace DotLisp.Environments
 {
     public class GlobalEnvironment : Environment
     {
+        public static readonly DotSymbol Nil = new DotSymbol("nil");
+
         public GlobalEnvironment() :
             base(InitData.Keys, InitData.Values, null)
         {
@@ -36,10 +38,10 @@ namespace DotLisp.Environments
                 // TODO: implement general equals
                 ["=="] = Math.Equals(),
 
-                ["PI"] = new DotNumber() { Float = (float)System.Math.PI },
-                ["E"] = new DotNumber() { Float = (float)System.Math.E },
-                ["nil"] = new DotSymbol("nil", 0, 0),
-
+                ["PI"] = new DotNumber() {Float = (float) System.Math.PI},
+                ["E"] = new DotNumber() {Float = (float) System.Math.E},
+                ["nil"] = Nil,
+                ["empty?"] = Lists.Empty(),
                 ["first"] = Lists.First(),
                 ["rest"] = Lists.Rest(),
                 ["cons"] = Lists.Cons(),

@@ -5,6 +5,8 @@
     (fn (x)
         (* x x)))
 
+(def y (square 4))
+
 (defmacro when (fn (test consequence)
         (if test
             consequence

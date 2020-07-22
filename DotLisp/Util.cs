@@ -34,6 +34,11 @@ namespace DotLisp
             };
         }
 
+        public static DotBool ToDotBool(this bool val)
+        {
+            return val ? DotBool.True() : DotBool.False();
+        }
+
         public static string PrettyPrint(this object o)
         {
             return JsonConvert.SerializeObject(o, Formatting.Indented,
