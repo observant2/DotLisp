@@ -13,11 +13,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models.Proposals;
 namespace DotLispLsp
 {
 #pragma warning disable 618
-    public class SemanticTokens : SemanticTokensHandler
+    public class SemanticTokensHandlerDl : SemanticTokensHandler
     {
         private readonly ILogger _logger;
 
-        public SemanticTokens(ILogger<SemanticTokens> logger) : base(
+        public SemanticTokensHandlerDl(ILogger<SemanticTokens> logger) : base(
             new SemanticTokensRegistrationOptions()
             {
                 DocumentSelector = DocumentSelector.ForLanguage("csharp"),
@@ -34,16 +34,14 @@ namespace DotLispLsp
             _logger = logger;
         }
 
-        public override async Task<OmniSharp.Extensions.LanguageServer.Protocol.
-            Models.Proposals.SemanticTokens> Handle(
+        public override async Task<SemanticTokens> Handle(
             SemanticTokensParams request, CancellationToken cancellationToken)
         {
             var result = await base.Handle(request, cancellationToken);
             return result;
         }
 
-        public override async Task<OmniSharp.Extensions.LanguageServer.Protocol.
-            Models.Proposals.SemanticTokens> Handle(
+        public override async Task<SemanticTokens> Handle(
             SemanticTokensRangeParams request, CancellationToken cancellationToken)
         {
             var result = await base.Handle(request, cancellationToken);
