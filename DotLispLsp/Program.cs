@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 
@@ -40,9 +34,9 @@ namespace DotLispLsp
                         .SetMinimumLevel(LogLevel.Information))
                     .WithHandler<TextDocumentSyncHandler>()
                     .WithHandler<CompletionHandler>()
+                    .WithHandler<SemanticTokensHandlerDl>()
                     // .WithHandler<DidChangeWatchedFilesHandler>()
                     // .WithHandler<FoldingRangeHandler>()
-                    // .WithHandler<SemanticTokens>()
                     .WithServices(x =>
                         x.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)))
                     .WithServices(services =>

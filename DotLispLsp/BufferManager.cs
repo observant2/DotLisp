@@ -2,7 +2,7 @@
 
 namespace DotLispLsp
 {
-    internal class BufferManager
+    public class BufferManager
     {
         private ConcurrentDictionary<string, string> _buffers =
             new ConcurrentDictionary<string, string>();

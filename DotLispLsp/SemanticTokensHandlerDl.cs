@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DotLisp;
+using DotLisp.Parsing;
+using DotLisp.Types;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document.Proposals;
@@ -16,11 +19,13 @@ namespace DotLispLsp
     public class SemanticTokensHandlerDl : SemanticTokensHandler
     {
         private readonly ILogger _logger;
+        private BufferManager _bufferManager;
 
-        public SemanticTokensHandlerDl(ILogger<SemanticTokens> logger) : base(
+        public SemanticTokensHandlerDl(ILogger<SemanticTokens> logger,
+            BufferManager bufferManager) : base(
             new SemanticTokensRegistrationOptions()
             {
-                DocumentSelector = DocumentSelector.ForLanguage("csharp"),
+                DocumentSelector = DocumentSelector.ForLanguage("dotlisp"),
                 Legend = new SemanticTokensLegend(),
                 DocumentProvider =
                     new Supports<SemanticTokensDocumentProviderOptions>(true,
@@ -32,6 +37,7 @@ namespace DotLispLsp
             })
         {
             _logger = logger;
+            _bufferManager = bufferManager;
         }
 
         public override async Task<SemanticTokens> Handle(
@@ -64,26 +70,69 @@ namespace DotLispLsp
                 RotateEnum(SemanticTokenType.Defaults).GetEnumerator();
             using var modifiersEnumerator =
                 RotateEnum(SemanticTokenModifier.Defaults).GetEnumerator();
-            // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
-            var content = await File.ReadAllTextAsync(
-                DocumentUri.GetFileSystemPath(identifier), cancellationToken);
+            // TODO: Get this from the BufferManager
+
+            var content =
+                _bufferManager.GetBuffer(identifier.TextDocument.Uri.ToString());
+
+            _logger.LogInformation(
+                $"content: {content}\nuri: {identifier.TextDocument.Uri}");
+
+            var inPort = new InPort("");
+
+            // TODO: Read() fails, when comments are present in the file...
+            DotExpression ast = null;
+            try
+            {
+                ast = Expander.Expand(inPort.Read(content));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("SemanticTokensHandler error:\n" + e.Message);
+                return;
+            }
+
             await Task.Yield();
 
-            foreach (var (line, text) in content.Split('\n')
-                .Select((text, line) => (line, text)))
+            if (ast is DotList l)
             {
-                var parts = text.TrimEnd().Split(';', ' ', '.', '"', '(', ')');
-                var index = 0;
-                foreach (var part in parts)
+                var symbols = ExtractTypes<DotSymbol>(l);
+                _logger.LogInformation("symbols:\n" + symbols.PrettyPrint());
+                // TODO: Make this parallel
+                foreach (var symbol in symbols)
                 {
-                    typesEnumerator.MoveNext();
-                    modifiersEnumerator.MoveNext();
-                    if (string.IsNullOrWhiteSpace(part)) continue;
-                    index = text.IndexOf(part, index, StringComparison.Ordinal);
-                    builder.Push(line, index, part.Length, typesEnumerator.Current,
-                        modifiersEnumerator.Current);
+                    builder.Push(symbol.Line - 1, symbol.Column,
+                        symbol.Name.Length,
+                        SemanticTokenType.Function, SemanticTokenModifier.Static);
+                }
+
+                var strings = ExtractTypes<DotString>(l);
+                _logger.LogInformation("strings:\n" + strings.PrettyPrint());
+                foreach (var str in strings)
+                {
+                    builder.Push(str.Line - 1, str.Column, str.Value.Length + 2,
+                        SemanticTokenType.Class, SemanticTokenModifier.Static);
                 }
             }
+        }
+
+        private List<T> ExtractTypes<T>(DotList l) where T : DotExpression
+        {
+            var ret = new List<T>();
+            foreach (var exp in l.Expressions)
+            {
+                if (exp is T s)
+                {
+                    ret.Add(s);
+                }
+
+                if (exp is DotList innerList)
+                {
+                    ret.AddRange(ExtractTypes<T>(innerList));
+                }
+            }
+
+            return ret;
         }
 
         protected override Task<SemanticTokensDocument>

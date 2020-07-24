@@ -72,17 +72,19 @@ namespace DotLisp.Parsing
 
                 var match = _tokenizer.Match(_line).Groups[1].Value;
                 
-                CurColumn += _line.IndexOf(match, StringComparison.Ordinal) + 1;
+                var whitespaceInFrontOfToken = _line.IndexOf(match, StringComparison.Ordinal);
 
-                var originalLineLength = _line.Length;
-                var token = match.Trim();
+                var token = match;
                 
-                _line = _line.ReplaceFirst(token, "").Trim();
-                
-                CurColumn += originalLineLength - _line.Length - token.Length; // take whitespace into account for error reporting!
+                // The order is important here! First trim, then replace the found token.
+                // Otherwise the whitespace in the line adds up.
+                _line = _line.TrimStart(); 
+                _line = _line.ReplaceFirst(token, "");
+                CurColumn += whitespaceInFrontOfToken;
 
                 if (token != "" && !token.StartsWith(";"))
                 {
+                    Console.WriteLine($"Token: '{token}' ({CurLine}:{CurColumn})");
                     return token;
                 }
             }
@@ -107,6 +109,7 @@ namespace DotLisp.Parsing
             switch (token)
             {
                 case "(":
+                    CurColumn += 1;
                     var l = new DotList()
                     {
                         Line = CurLine,
@@ -118,6 +121,7 @@ namespace DotLisp.Parsing
                         token = NextToken();
                         if (token == ")")
                         {
+                            CurColumn += 1;
                             return l;
                         }
 
@@ -125,6 +129,7 @@ namespace DotLisp.Parsing
                     }
 
                 case ")":
+                    CurColumn += 1;
                     throw new ParserException("Unexpected ')'!", CurLine, CurColumn);
             }
 
@@ -145,7 +150,9 @@ namespace DotLisp.Parsing
                 };
             }
 
-            return ParseAtom(token, CurLine, CurColumn);
+            var ret = ParseAtom(token, CurLine, CurColumn);
+            CurColumn += token.Length;
+            return ret;
         }
 
         public DotExpression Read()
