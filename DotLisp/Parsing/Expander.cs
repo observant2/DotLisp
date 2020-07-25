@@ -45,6 +45,12 @@ namespace DotLisp.Parsing
 
                 if (op.Name == "def" || op.Name == "defmacro")
                 {
+                    if (args.Count != 2)
+                    {
+                        throw new ParserException("name and body expected!", op.Line,
+                            op.Column);
+                    }
+
                     var defBody = Expand(args.ElementAt(1));
 
                     if (op.Name == "defmacro")
@@ -52,7 +58,8 @@ namespace DotLisp.Parsing
                         if (!topLevel)
                         {
                             throw new ParserException(
-                                "'defmacro' only allowed at top level!", op.Line, op.Column);
+                                "'defmacro' only allowed at top level!", op.Line,
+                                op.Column);
                         }
 
                         var procedure = Evaluator.Eval(defBody);
@@ -116,7 +123,8 @@ namespace DotLisp.Parsing
             if (!isPair(expression)) // `x => 'x
             {
                 var quotedExpr = new LinkedList<DotExpression>();
-                quotedExpr.AddLast(new DotSymbol("quote", expression.Line, expression.Column));
+                quotedExpr.AddLast(new DotSymbol("quote", expression.Line,
+                    expression.Column));
                 quotedExpr.AddLast(expression);
 
                 return quotedExpr.ToDotList();
@@ -139,7 +147,8 @@ namespace DotLisp.Parsing
 
                 var expandedSplice = new LinkedList<DotExpression>();
 
-                expandedSplice.AddLast(new DotSymbol("concat", expression.Line, expression.Column));
+                expandedSplice.AddLast(new DotSymbol("concat", expression.Line,
+                    expression.Column));
                 expandedSplice.AddLast(first);
                 expandedSplice.AddLast(ExpandQuasiquote(others));
 

@@ -94,7 +94,7 @@ namespace DotLisp.Environments
                         Console.Write(prompt);
                     }
 
-                    var x = Expander.Expand(parser.Read(), true);
+                    var x = Expander.Expand(parser.Read().AST, true);
 
                     if (x == null)
                     {

@@ -15,18 +15,25 @@ namespace DotLisp.Environments.Core
                     switch (args)
                     {
                         case DotList l:
-                            {
-                                var sum = l.Expressions.Cast<DotNumber>()
-                                    .Select(s => s.GetValue())
-                                    .Aggregate(reducer);
+                        {
+                            var nums = l.Expressions.Cast<DotNumber>()
+                                .Select(s => s.GetValue());
 
-                                return new DotNumber()
-                                {
-                                    Float = sum
-                                };
+                            if (nums.Count() <= 1) // edge case for (- x) => -x and (+) => 0
+                            {
+                                nums = nums.Prepend(0);
                             }
+
+                            var sum = nums.Aggregate(reducer);
+
+                            return new DotNumber()
+                            {
+                                Float = sum
+                            };
+                        }
                         default:
-                            throw new EvaluatorException("Illegal arguments for +");
+                            throw new EvaluatorException(
+                                "Illegal arguments for Math.Apply(...)");
                     }
                 });
         }
@@ -41,28 +48,33 @@ namespace DotLisp.Environments.Core
                         case DotBool b:
                             return b;
                         case DotList l:
+                        {
+                            var numbers = l.Expressions.Cast<DotNumber>()
+                                .Select(s => s.GetValue()).ToList();
+
+                            if (numbers.Count < 2)
                             {
-                                var numbers = l.Expressions.Cast<DotNumber>()
-                                    .Select(s => s.GetValue()).ToList();
-
-                                var (_, result) = numbers.Skip(1).Aggregate(
-                                    (numbers[0], true), (tuple, b) =>
-                                    {
-                                        var (a, resultSoFar) = tuple;
-
-                                        if (!resultSoFar)
-                                        {
-                                            return (b, false);
-                                        }
-
-                                        var predicateStillTrue = predicate(a, b);
-
-                                        return (b, predicateStillTrue);
-                                    });
-
-
-                                return new DotBool(result);
+                                throw new EvaluatorException("Cannot compare less than two numbers.");
                             }
+
+                            var (_, result) = numbers.Skip(1).Aggregate(
+                                (numbers[0], true), (tuple, b) =>
+                                {
+                                    var (a, resultSoFar) = tuple;
+
+                                    if (!resultSoFar)
+                                    {
+                                        return (b, false);
+                                    }
+
+                                    var predicateStillTrue = predicate(a, b);
+
+                                    return (b, predicateStillTrue);
+                                });
+
+
+                            return new DotBool(result);
+                        }
                         default:
                             throw new Exception("Illegal arguments for BoolApply.");
                     }
@@ -79,30 +91,35 @@ namespace DotLisp.Environments.Core
                         case DotSymbol _:
                             return DotBool.True();
                         case DotList l:
+                        {
+                            // TODO: extend equality to objects!
+
+                            var numbers = l.Expressions.Cast<DotNumber>().ToList();
+
+                            if (numbers.Count == 0)
                             {
-                                // TODO: extend equality to objects!
-
-                                var numbers = l.Expressions.Cast<DotNumber>().ToList();
-
-                                var first = numbers[0];
-
-                                var (_, result) = numbers.Skip(1).Aggregate(
-                                    seed: (first, true), func: (tuple, b) =>
-                                    {
-                                        var (a, resultSoFar) = tuple;
-
-                                        if (!resultSoFar)
-                                        {
-                                            return (b, false);
-                                        }
-
-                                        var predicateStillTrue =
-                                            a.GetValue() == b.GetValue();
-
-                                        return (b, predicateStillTrue);
-                                    });
-                                return new DotBool(result);
+                                throw new EvaluatorException("Nothing to compare.");
                             }
+
+                            var first = numbers[0];
+
+                            var (_, result) = numbers.Skip(1).Aggregate(
+                                seed: (first, true), func: (tuple, b) =>
+                                {
+                                    var (a, resultSoFar) = tuple;
+
+                                    if (!resultSoFar)
+                                    {
+                                        return (b, false);
+                                    }
+
+                                    var predicateStillTrue =
+                                        a.GetValue() == b.GetValue();
+
+                                    return (b, predicateStillTrue);
+                                });
+                            return new DotBool(result);
+                        }
                     }
 
                     return DotBool.False();

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using DotLisp.Exceptions;
@@ -15,6 +16,12 @@ namespace DotLisp.Parsing
     /// expander and the evaluator don't have to deal with that.
     public class Parser
     {
+        public class Result
+        {
+            public DotExpression AST { get; set; }
+            public List<ParserError> ParserErrors { get; set; }
+        }
+
         private readonly Regex _tokenizer = new Regex(
             @"\s*(,@|[('`,)]|""(?:[\\].|[^\\""])*""|;.*|[^\s('""`,;)]*)(.*)"
         );
@@ -27,6 +34,9 @@ namespace DotLisp.Parsing
             [","] = "unquote",
             [",@"] = "unquotesplicing"
         };
+
+        public List<ParserError> ParserErrors { get; set; } =
+            new List<ParserError>();
 
         private StreamReader _inputStream;
 
@@ -70,21 +80,30 @@ namespace DotLisp.Parsing
                     return null;
                 }
 
+                // Incomplete string cannot be recognized...
+                if (_line.Count(c => c == '\"') == 1)
+                {
+                    // Skip over it. May lead to weird error messages?
+                    _line = _line.ReplaceFirst("\"", "");
+                }
+
                 var match = _tokenizer.Match(_line).Groups[1].Value;
-                
-                var whitespaceInFrontOfToken = _line.IndexOf(match, StringComparison.Ordinal);
+
+                var whitespaceInFrontOfToken =
+                    _line.IndexOf(match, StringComparison.Ordinal);
 
                 var token = match;
-                
+
                 // The order is important here! First trim, then replace the found token.
                 // Otherwise the whitespace in the line adds up.
-                _line = _line.TrimStart(); 
+                _line = _line.TrimStart();
                 _line = _line.ReplaceFirst(token, "");
                 CurColumn += whitespaceInFrontOfToken;
 
+                // Console.WriteLine($"_line at the end: {_line}");
+                // Console.WriteLine($"Token: '{token}' ({CurLine}:{CurColumn})");
                 if (token != "" && !token.StartsWith(";"))
                 {
-                    // Console.WriteLine($"Token: '{token}' ({CurLine}:{CurColumn})");
                     return token;
                 }
             }
@@ -130,7 +149,14 @@ namespace DotLisp.Parsing
 
                 case ")":
                     CurColumn += 1;
-                    throw new ParserException("Unexpected ')'!", CurLine, CurColumn);
+                    ParserErrors.Add(new ParserError()
+                    {
+                        Line = CurLine,
+                        Column = CurColumn,
+                        Message = "Unexpected ')'!"
+                    });
+                    token = NextToken();
+                    return ReadAhead(token);
             }
 
             if (_quotes.ContainsKey(token))
@@ -140,7 +166,7 @@ namespace DotLisp.Parsing
                 var exps = new LinkedList<DotExpression>();
 
                 exps.AddLast(new DotSymbol(keyword, CurLine, CurColumn));
-                exps.AddLast(Read());
+                exps.AddLast(Read().AST);
 
                 return new DotList
                 {
@@ -155,22 +181,29 @@ namespace DotLisp.Parsing
             return ret;
         }
 
-        public DotExpression Read()
+        public Result Read()
         {
             var token1 = NextToken();
-            return token1 == null ? null : ReadAhead(token1);
+            var ast = token1 == null ? null : ReadAhead(token1);
+            return new Result()
+            {
+                AST = ast,
+                ParserErrors = ParserErrors
+            };
         }
 
         /// Reads one s-expression at a time
-        public DotExpression Read(string input)
+        public Result Read(string input)
         {
+            ParserErrors.Clear();
             _inputStream =
                 new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input)));
             return Read();
         }
 
-        public DotExpression Read(FileStream fileStream)
+        public Result Read(FileStream fileStream)
         {
+            ParserErrors.Clear();
             _inputStream = new StreamReader(fileStream);
             return Read();
         }
@@ -223,5 +256,12 @@ namespace DotLisp.Parsing
 
             return new DotSymbol(token, line, column);
         }
+    }
+
+    public class ParserError
+    {
+        public string Message { get; set; }
+        public int Line { get; set; }
+        public int Column { get; set; }
     }
 }

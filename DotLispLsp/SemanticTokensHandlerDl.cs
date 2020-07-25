@@ -82,7 +82,7 @@ namespace DotLispLsp
             {
                 do
                 {
-                    expression = inPort.Read();
+                    expression = inPort.Read().AST;
                     expressions.Add(expression);
                     _logger.LogInformation(
                         $"read expression:\n{expression.PrettyPrint()}");
@@ -93,8 +93,6 @@ namespace DotLispLsp
                 _logger.LogError("SemanticTokensHandler error:\n" + e.Message);
                 return;
             }
-
-            await Task.Yield();
 
             var ast = expressions.ToDotList();
 
@@ -111,7 +109,8 @@ namespace DotLispLsp
                     $"({symbol.Line}:{symbol.Column}) symbol: {symbol.Name}");
                 builder.Push(symbol.Line - 1, symbol.Column,
                     symbol.Name.Length,
-                    SemanticTokenType.Function, SemanticTokenModifier.Static, SemanticTokenModifier.Documentation);
+                    SemanticTokenType.Function, SemanticTokenModifier.Static,
+                    SemanticTokenModifier.Documentation);
             }
 
             var strings = ExtractTypes<DotString>(ast);
@@ -122,7 +121,8 @@ namespace DotLispLsp
                 _logger.LogInformation(
                     $"({str.Line}:{str.Column}) string: {str.Value}");
                 builder.Push(str.Line - 1, str.Column, str.Value.Length + 2,
-                    SemanticTokenType.Class, SemanticTokenModifier.Static, SemanticTokenModifier.Readonly);
+                    SemanticTokenType.Class, SemanticTokenModifier.Static,
+                    SemanticTokenModifier.Readonly);
             }
         }
 

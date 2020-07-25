@@ -100,7 +100,7 @@ namespace Tests
 
         private DotExpression Eval(string program)
         {
-            return Evaluator.Eval(Expander.Expand(_parser.Read(program)));
+            return Evaluator.Eval(Expander.Expand(_parser.Read(program).AST));
         }
     }
 }
