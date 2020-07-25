@@ -1,3 +1,6 @@
-﻿(do
-  (def testfile "asdssssaassgdsafasdfg")
-)
+﻿(def a-string "asdssssaassgdsafasdfg")
+(def another-string "asdssssaassgdg")
+
+(def another-string "asdssssaassgdg")
+
+(def another-string "asdssssaassgdg")

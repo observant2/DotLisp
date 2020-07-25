@@ -13,7 +13,7 @@ namespace DotLisp.Parsing
     /// It also converts special characters to lispy function calls,
     /// for example: '(1 2 3) -> (quote (1 2 3)), so that the
     /// expander and the evaluator don't have to deal with that.
-    public class InPort
+    public class Parser
     {
         private readonly Regex _tokenizer = new Regex(
             @"\s*(,@|[('`,)]|""(?:[\\].|[^\\""])*""|;.*|[^\s('""`,;)]*)(.*)"
@@ -34,22 +34,22 @@ namespace DotLisp.Parsing
         public int CurColumn = 0;
         public int CurLine = 0;
 
-        public InPort()
+        public Parser()
         {
         }
 
-        public InPort(StreamReader inputStream)
+        public Parser(StreamReader inputStream)
         {
             _inputStream = inputStream;
             CurLine = 0;
             CurColumn = 0;
         }
 
-        public InPort(Stream stream) : this(new StreamReader(stream))
+        public Parser(Stream stream) : this(new StreamReader(stream))
         {
         }
 
-        public InPort(string input) : this(
+        public Parser(string input) : this(
             new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(input))))
         {
         }
@@ -84,23 +84,23 @@ namespace DotLisp.Parsing
 
                 if (token != "" && !token.StartsWith(";"))
                 {
-                    Console.WriteLine($"Token: '{token}' ({CurLine}:{CurColumn})");
+                    // Console.WriteLine($"Token: '{token}' ({CurLine}:{CurColumn})");
                     return token;
                 }
             }
         }
 
-        public static string ReadChar(InPort inPort)
+        public static string ReadChar(Parser parser)
         {
-            if (inPort._line != "")
+            if (parser._line != "")
             {
-                var ch = "" + inPort._line[0];
-                inPort._line = inPort._line.Substring(1);
+                var ch = "" + parser._line[0];
+                parser._line = parser._line.Substring(1);
                 return ch;
             }
             else
             {
-                return "" + Convert.ToChar(inPort._inputStream.Read());
+                return "" + Convert.ToChar(parser._inputStream.Read());
             }
         }
 
@@ -161,6 +161,7 @@ namespace DotLisp.Parsing
             return token1 == null ? null : ReadAhead(token1);
         }
 
+        /// Reads one s-expression at a time
         public DotExpression Read(string input)
         {
             _inputStream =

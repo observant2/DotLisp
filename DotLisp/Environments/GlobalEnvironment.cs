@@ -65,7 +65,7 @@ namespace DotLisp.Environments
                     try
                     {
                         using var file = File.Open(path.Value, FileMode.Open);
-                        Repl(null, new InPort(new StreamReader(file)),
+                        Repl(null, new Parser(new StreamReader(file)),
                             false);
                         return DotBool.True();
                     }
@@ -78,11 +78,11 @@ namespace DotLisp.Environments
             };
 
         public static void Repl(string prompt = "> ",
-            InPort inPort = null, bool printToConsole = true)
+            Parser parser = null, bool printToConsole = true)
 
         {
-            inPort ??=
-                new InPort(new StreamReader(Console.OpenStandardInput(),
+            parser ??=
+                new Parser(new StreamReader(Console.OpenStandardInput(),
                     Encoding.UTF8));
 
             while (true)
@@ -94,7 +94,7 @@ namespace DotLisp.Environments
                         Console.Write(prompt);
                     }
 
-                    var x = Expander.Expand(inPort.Read(), true);
+                    var x = Expander.Expand(parser.Read(), true);
 
                     if (x == null)
                     {

@@ -13,7 +13,7 @@ namespace DotLisp
                 using var fileStream = File.Open(file, FileMode.Open);
                 GlobalEnvironment.Repl(
                     null,
-                    new InPort(fileStream),
+                    new Parser(fileStream),
                     false);
             }
 

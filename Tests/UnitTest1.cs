@@ -8,7 +8,7 @@ namespace Tests
 {
     public class UnitTest1
     {
-        private readonly InPort _inPort = new InPort("");
+        private readonly Parser _parser = new Parser("");
 
         // runs before every test
         public UnitTest1()
@@ -100,7 +100,7 @@ namespace Tests
 
         private DotExpression Eval(string program)
         {
-            return Evaluator.Eval(Expander.Expand(_inPort.Read(program)));
+            return Evaluator.Eval(Expander.Expand(_parser.Read(program)));
         }
     }
 }

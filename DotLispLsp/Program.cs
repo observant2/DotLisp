@@ -31,7 +31,7 @@ namespace DotLispLsp
                     .ConfigureLogging(x => x
                         .AddSerilog()
                         .AddLanguageProtocolLogging()
-                        .SetMinimumLevel(LogLevel.Information))
+                        .SetMinimumLevel(LogLevel.Trace))
                     .WithHandler<TextDocumentSyncHandler>()
                     .WithHandler<CompletionHandler>()
                     .WithHandler<SemanticTokensHandlerDl>()
@@ -41,46 +41,11 @@ namespace DotLispLsp
                         x.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)))
                     .WithServices(services =>
                     {
-                        services.AddSingleton(provider =>
-                        {
-                            var loggerFactory =
-                                provider.GetService<ILoggerFactory>();
-                            var logger = loggerFactory.CreateLogger<Foo>();
-
-                            logger.LogInformation("Configuring");
-
-                            return new Foo(logger);
-                        });
                         services.AddSingleton<BufferManager>();
                     })
-                    // .OnDidChangeTextDocument(async (param, capability, cancellationToken) =>
-                    //     {
-                    //         Log.Logger.Information("My own did change message");
-                    //     },
-                    //     new TextDocumentChangeRegistrationOptions()
-                    //     {
-                    //         DocumentSelector =
-                    //             DocumentSelector.ForLanguage("dotlisp"),
-                    //         SyncKind = TextDocumentSyncKind.Full
-                    //     })
             );
 
             await server.WaitForExit;
-        }
-    }
-
-    internal class Foo
-    {
-        private readonly ILogger<Foo> _logger;
-
-        public Foo(ILogger<Foo> logger)
-        {
-            _logger = logger;
-        }
-
-        public void Log(string message)
-        {
-            _logger.LogInformation(message);
         }
     }
 }

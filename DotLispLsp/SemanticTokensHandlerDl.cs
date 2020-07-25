@@ -9,6 +9,7 @@ using DotLisp.Types;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document.Proposals;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models.Proposals;
@@ -66,25 +67,26 @@ namespace DotLispLsp
             ITextDocumentIdentifierParams identifier,
             CancellationToken cancellationToken)
         {
-            using var typesEnumerator =
-                RotateEnum(SemanticTokenType.Defaults).GetEnumerator();
-            using var modifiersEnumerator =
-                RotateEnum(SemanticTokenModifier.Defaults).GetEnumerator();
-            // TODO: Get this from the BufferManager
-
             var content =
                 _bufferManager.GetBuffer(identifier.TextDocument.Uri.ToString());
 
             _logger.LogInformation(
                 $"content: {content}\nuri: {identifier.TextDocument.Uri}");
 
-            var inPort = new InPort("");
+            var inPort = new Parser(content);
 
             // TODO: Read() fails, when comments are present in the file...
-            DotExpression ast = null;
+            var expressions = new List<DotExpression>();
+            DotExpression expression;
             try
             {
-                ast = Expander.Expand(inPort.Read(content));
+                do
+                {
+                    expression = inPort.Read();
+                    expressions.Add(expression);
+                    _logger.LogInformation(
+                        $"read expression:\n{expression.PrettyPrint()}");
+                } while (expression != null);
             }
             catch (Exception e)
             {
@@ -94,25 +96,33 @@ namespace DotLispLsp
 
             await Task.Yield();
 
-            if (ast is DotList l)
-            {
-                var symbols = ExtractTypes<DotSymbol>(l);
-                _logger.LogInformation("symbols:\n" + symbols.PrettyPrint());
-                // TODO: Make this parallel
-                foreach (var symbol in symbols)
-                {
-                    builder.Push(symbol.Line - 1, symbol.Column,
-                        symbol.Name.Length,
-                        SemanticTokenType.Function, SemanticTokenModifier.Static);
-                }
+            var ast = expressions.ToDotList();
 
-                var strings = ExtractTypes<DotString>(l);
-                _logger.LogInformation("strings:\n" + strings.PrettyPrint());
-                foreach (var str in strings)
-                {
-                    builder.Push(str.Line - 1, str.Column, str.Value.Length + 2,
-                        SemanticTokenType.Class, SemanticTokenModifier.Static);
-                }
+            _logger.LogInformation(
+                $"-----------------original ast:\n{ast.PrettyPrint()}");
+
+            var symbols = ExtractTypes<DotSymbol>(ast);
+            _logger.LogInformation(
+                $"-----------------extracted Symbols:\n{symbols.PrettyPrint()}");
+            // TODO: Make this parallel
+            foreach (var symbol in symbols)
+            {
+                _logger.LogInformation(
+                    $"({symbol.Line}:{symbol.Column}) symbol: {symbol.Name}");
+                builder.Push(symbol.Line - 1, symbol.Column,
+                    symbol.Name.Length,
+                    SemanticTokenType.Function, SemanticTokenModifier.Static, SemanticTokenModifier.Documentation);
+            }
+
+            var strings = ExtractTypes<DotString>(ast);
+            _logger.LogInformation(
+                $"-----------------extracted Strings:\n{strings.PrettyPrint()}");
+            foreach (var str in strings)
+            {
+                _logger.LogInformation(
+                    $"({str.Line}:{str.Column}) string: {str.Value}");
+                builder.Push(str.Line - 1, str.Column, str.Value.Length + 2,
+                    SemanticTokenType.Class, SemanticTokenModifier.Static, SemanticTokenModifier.Readonly);
             }
         }
 
@@ -141,16 +151,6 @@ namespace DotLispLsp
         {
             return Task.FromResult(
                 new SemanticTokensDocument(GetRegistrationOptions().Legend));
-        }
-
-
-        private IEnumerable<T> RotateEnum<T>(IEnumerable<T> values)
-        {
-            while (true)
-            {
-                foreach (var item in values)
-                    yield return item;
-            }
         }
     }
 #pragma warning restore 618
