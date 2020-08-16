@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DotLisp;
 using DotLisp.Parsing;
 using DotLisp.Types;
-using MediatR;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document.Proposals;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models.Proposals;
@@ -17,96 +13,58 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models.Proposals;
 namespace DotLispLsp
 {
 #pragma warning disable 618
-    public class SemanticTokensHandlerDl : SemanticTokensHandler
+    public class SemanticTokensHandlerDl : SemanticTokensHandlerBase
     {
         private readonly ILogger _logger;
         private BufferManager _bufferManager;
 
         public SemanticTokensHandlerDl(ILogger<SemanticTokens> logger,
-            BufferManager bufferManager) : base(
-            new SemanticTokensRegistrationOptions()
-            {
-                DocumentSelector = DocumentSelector.ForLanguage("dotlisp"),
-                Legend = new SemanticTokensLegend(),
-                DocumentProvider =
-                    new Supports<SemanticTokensDocumentProviderOptions>(true,
-                        new SemanticTokensDocumentProviderOptions()
-                        {
-                            Edits = true
-                        }),
-                RangeProvider = true
-            })
+            BufferManager bufferManager) : base(GlobalSettings
+            .SemanticTokensRegistrationOptions)
         {
             _logger = logger;
             _bufferManager = bufferManager;
         }
 
         public override async Task<SemanticTokens> Handle(
-            SemanticTokensParams request, CancellationToken cancellationToken)
+            SemanticTokensParams request, CancellationToken cancellationToken
+        )
         {
             var result = await base.Handle(request, cancellationToken);
             return result;
         }
 
         public override async Task<SemanticTokens> Handle(
-            SemanticTokensRangeParams request, CancellationToken cancellationToken)
+            SemanticTokensRangeParams request, CancellationToken cancellationToken
+        )
         {
             var result = await base.Handle(request, cancellationToken);
             return result;
         }
 
-        public override async Task<SemanticTokensOrSemanticTokensEdits> Handle(
-            SemanticTokensEditsParams request,
-            CancellationToken cancellationToken)
+        public override async Task<SemanticTokensFullOrDelta> Handle(
+            SemanticTokensDeltaParams request,
+            CancellationToken cancellationToken
+        )
         {
             var result = await base.Handle(request, cancellationToken);
             return result;
         }
-
         protected override async Task Tokenize(SemanticTokensBuilder builder,
             ITextDocumentIdentifierParams identifier,
             CancellationToken cancellationToken)
         {
-            var content =
-                _bufferManager.GetBuffer(identifier.TextDocument.Uri.ToString());
-
-            _logger.LogInformation(
-                $"content: {content}\nuri: {identifier.TextDocument.Uri}");
-
-            var inPort = new Parser(content);
-
-            // TODO: Read() fails, when comments are present in the file...
-            var expressions = new List<DotExpression>();
-            DotExpression expression;
-            try
-            {
-                do
-                {
-                    expression = inPort.Read().AST;
-                    expressions.Add(expression);
-                    _logger.LogInformation(
-                        $"read expression:\n{expression.PrettyPrint()}");
-                } while (expression != null);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("SemanticTokensHandler error:\n" + e.Message);
-                return;
-            }
-
-            var ast = expressions.ToDotList();
-
-            _logger.LogInformation(
-                $"-----------------original ast:\n{ast.PrettyPrint()}");
+            var ast =
+                _bufferManager.GetAstFor(identifier.TextDocument.Uri.ToString()).Expressions.ToDotList();
 
             var symbols = ExtractTypes<DotSymbol>(ast);
-            _logger.LogInformation(
-                $"-----------------extracted Symbols:\n{symbols.PrettyPrint()}");
+            // _logger.LogInformation(
+            //     $"-----------------extracted Symbols:\n{symbols.PrettyPrint()}");
             // TODO: Make this parallel
             foreach (var symbol in symbols)
             {
-                _logger.LogInformation(
-                    $"({symbol.Line}:{symbol.Column}) symbol: {symbol.Name}");
+                // _logger.LogInformation(
+                //     $"({symbol.Line}:{symbol.Column}) symbol: {symbol.Name}");
                 builder.Push(symbol.Line - 1, symbol.Column,
                     symbol.Name.Length,
                     SemanticTokenType.Function, SemanticTokenModifier.Static,
@@ -114,12 +72,12 @@ namespace DotLispLsp
             }
 
             var strings = ExtractTypes<DotString>(ast);
-            _logger.LogInformation(
-                $"-----------------extracted Strings:\n{strings.PrettyPrint()}");
+            // _logger.LogInformation(
+            //     $"-----------------extracted Strings:\n{strings.PrettyPrint()}");
             foreach (var str in strings)
             {
-                _logger.LogInformation(
-                    $"({str.Line}:{str.Column}) string: {str.Value}");
+                // _logger.LogInformation(
+                //     $"({str.Line}:{str.Column}) string: {str.Value}");
                 builder.Push(str.Line - 1, str.Column, str.Value.Length + 2,
                     SemanticTokenType.Class, SemanticTokenModifier.Static,
                     SemanticTokenModifier.Readonly);

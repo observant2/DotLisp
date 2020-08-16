@@ -2,12 +2,12 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace DotLispLsp
@@ -31,7 +31,7 @@ namespace DotLispLsp
             return new TextDocumentChangeRegistrationOptions()
             {
                 DocumentSelector = GlobalSettings.DocumentSelector,
-                SyncKind = TextDocumentSyncKind.Full
+                SyncKind = GlobalSettings.SyncKind,
             };
         }
 
@@ -43,6 +43,12 @@ namespace DotLispLsp
             var text = request.ContentChanges.FirstOrDefault()?.Text;
 
             _bufferManager.UpdateBuffer(documentPath, text);
+
+            _languageServer.SendRequest(
+                new PublishDiagnosticsParams()
+                {
+                    Uri = request.TextDocument.Uri
+                }, cancellationToken);
 
             _languageServer.Window.LogInfo(
                 $"Updated buffer for document: {documentPath}");

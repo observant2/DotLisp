@@ -35,8 +35,7 @@ namespace DotLispLsp
                     .WithHandler<TextDocumentSyncHandler>()
                     .WithHandler<CompletionHandler>()
                     .WithHandler<SemanticTokensHandlerDl>()
-                    // .WithHandler<DidChangeWatchedFilesHandler>()
-                    // .WithHandler<FoldingRangeHandler>()
+                    .WithHandler<DiagnosticsHandler>()
                     .WithServices(x =>
                         x.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)))
                     .WithServices(services =>

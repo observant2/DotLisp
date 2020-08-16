@@ -26,7 +26,7 @@ namespace DotLispLsp
             return new CompletionRegistrationOptions
             {
                 DocumentSelector = GlobalSettings.DocumentSelector,
-                ResolveProvider = true
+                ResolveProvider = true,
             };
         }
 
@@ -34,7 +34,7 @@ namespace DotLispLsp
             CancellationToken cancellationToken)
         {
             var documentPath = request.TextDocument.Uri.ToString();
-            var buffer = _bufferManager.GetBuffer(documentPath);
+            var buffer = _bufferManager.GetAstFor(documentPath);
 
             var cList = new[]
             {
